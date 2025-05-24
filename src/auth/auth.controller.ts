@@ -7,18 +7,20 @@ import { AuthResponseDTO } from './DTO/auth.dto';
 @Controller('auth')
 @ApiTags('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
-    @Post('register')
-    @ApiOkResponse({ type: AuthResponseDTO })
-    register(@Body() body: RegisterDTO): Promise<AuthResponseDTO> {
-        return this.authService.register(body);
-    }
+  @Post('register')
+  @ApiOkResponse({ type: AuthResponseDTO })
+  register(@Body() body: RegisterDTO): Promise<AuthResponseDTO> {
+    return this.authService.register(body);
+  }
 
-    @Post('login')
-    @HttpCode(200)
-    @ApiOkResponse({ type: AuthResponseDTO })
-    login( @Body() body: { email: string; password: string }): Promise<AuthResponseDTO> {
-        return this.authService.login(body.email, body.password);
-    }
+  @Post('login')
+  @HttpCode(200)
+  @ApiOkResponse({ type: AuthResponseDTO })
+  login(
+    @Body() body: { email: string; password: string },
+  ): Promise<AuthResponseDTO> {
+    return this.authService.login(body.email, body.password);
+  }
 }

@@ -6,13 +6,13 @@ import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 @Controller('users')
 @ApiTags('users')
 export class UsersController {
-    constructor(private readonly userService: UsersService) {}
+  constructor(private readonly userService: UsersService) {}
 
-    @Get('me')
-    @ApiOkResponse()
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard)
-    getMe(@Req() req) {
-        return this.userService.getOne(req.user.id);
-    }
+  @Get('me')
+  @ApiOkResponse()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  getMe(@Req() req) {
+    return this.userService.getOne(req.user.id);
+  }
 }
