@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs "nodeJS_22"
+    }
+
+    options { buildDiscarder(logRotator(numToKeepStr: '5')) }
+
+    environment {
+        DOCKER_CREDENTIALS = credentials('codevertDocker')
+        DOCKER_TAG = "${env.BRANCH_NAME == 'main' ? 'latest' : env.BRANCH_NAME}"
+        ENV_ID = "${env.BRANCH_NAME == 'main' ? 'streamaccess_backend_env' : "streamacces_backend_env_" + env.BRANCH_NAME}"
+        DISCORD_WEBHOOK = credentials('discord-webhook')
+    }
+
+    stages {
+        stage('Clean') {
+            steps {
+                cleanWS()
+            }
+        }
+
+        stage('Pull sources') {
+            steps {
+                git branch: '${BRANCH_NAME}',
+                credentialsId: 'github_ssh',
+                url: 'git@github.com:WhitedogWarren/OldSchoolGamesV2_backend.git'
+                script {
+                    env.GIT_COMMIT_MSG = sh(script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
+                }
+            }
+        }
+    }
+
+    
+}
