@@ -24,7 +24,7 @@ pipeline {
         stage('Pull sources') {
             steps {
                 git branch: '${BRANCH_NAME}',
-                credentialsId: 'github_ssh',
+                credentialsId: 'github_key',
                 url: 'git@github.com:WhitedogWarren/OldSchoolGamesV2_backend.git'
                 script {
                     env.GIT_COMMIT_MSG = sh(script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
