@@ -10,7 +10,7 @@ pipeline {
     environment {
         DOCKER_CREDENTIALS = credentials('codevertDocker')
         DOCKER_TAG = "${env.BRANCH_NAME == 'main' ? 'latest' : env.BRANCH_NAME}"
-        ENV_ID = "${env.BRANCH_NAME == 'main' ? 'streamaccess_backend_env' : "streamacces_backend_env_" + env.BRANCH_NAME}"
+        ENV_ID = "${env.BRANCH_NAME == 'main' ? 'osg_backend_env' : "osg_backend_env" + env.BRANCH_NAME}"
         DISCORD_WEBHOOK = credentials('discord-osg-webhook')
     }
 
@@ -40,10 +40,36 @@ pipeline {
                 '''
             }
         }
+
+        stage('lint') {
+            steps {
+                sh '''
+                    npm run ci_lint
+                '''
+            }
+        }
+
+        stage('build & push docker image') {
+            when {
+                expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'dev'}
+            }
+            steps {
+                //copy .env file from jenkins credentials to current workspace
+                withCredentials([file(credentialsId: "${ENV_ID}", variable: 'envFile')]){
+                    sh 'cp $envFile $WORKSPACE'
+                }
+                //connect to docker hub, build image and push to registry
+                sh '''
+                    echo $DOCKER_CREDENTIALS_PSW | docker login localhost:5000 -u $DOCKER_CREDENTIALS_USR --password-stdin
+                    docker build -t "localhost:5000/oldschoolgames:backend_${DOCKER_TAG}" .
+                    docker push localhost:5000/oldschoolgames:backend_${DOCKER_TAG}
+                '''
+            }
+        }
     }
 
     post {
-        always {
+        changed {
             script {
                 def messageResult = "is unknown"
                 def footer = "What happened ?"
@@ -64,7 +90,7 @@ pipeline {
                     smiley = "😭"
                 }
                 sh 'echo ${GIT_COMMIT_MSG}'
-                discordSend description: "Jenkins Pipeline Build for StreamAccess-Backend ${BRANCH_NAME} ${messageResult} ! ${smiley}\n\ngit commit message :\n${GIT_COMMIT_MSG}",
+                discordSend description: "Jenkins Pipeline Build for Old School Games Backend ${BRANCH_NAME} ${messageResult} ! ${smiley}\n\ngit commit message :\n${GIT_COMMIT_MSG}",
                 footer: "${footer}",
                 link: "$BUILD_URL",
                 result: currentBuild.currentResult,
