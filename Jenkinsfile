@@ -66,6 +66,21 @@ pipeline {
                 '''
             }
         }
+
+        stage('Update stack portainer') {
+            when {
+                expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'dev'}
+            }
+            steps {
+                //stop and restart portainer stack via api
+                withCredentials([string(credentialsId: 'portainer_token', variable: 'TOKEN')]) { //set SECRET with the credential content
+                    sh '''
+                        curl -X POST -H "X-API-Key: ${TOKEN}" https://portainer.codevert.org/api/stacks/7/stop?endpointId=2 &&
+                        curl -X POST -H "X-API-Key: ${TOKEN}" https://portainer.codevert.org/api/stacks/7/start?endpointId=2
+                    '''
+                }
+            }
+        }
     }
 
     post {
