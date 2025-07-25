@@ -25,7 +25,7 @@ pipeline {
             steps {
                 git branch: '${BRANCH_NAME}',
                 credentialsId: 'github_key',
-                url: 'git@github.com:WhitedogWarren/OldSchoolGamesV2_backend.git'
+                url: 'git@github.com:Codevert-org/OldSchoolGamesV2_backend.git'
                 script {
                     env.GIT_COMMIT_MSG = sh(script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
                 }
