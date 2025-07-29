@@ -41,4 +41,6 @@ export class RegisterDTO {
     example: 'Password123!',
   })
   password: string;
+
+  avatarUrl?: string;
 }
