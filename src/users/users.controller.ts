@@ -45,7 +45,7 @@ export class UsersController {
   updateMe(@Req() req, @UploadedFile() file) {
     const userId = req.user.id;
     const updateData = req.body;
-    updateData.avatarUrl = file ? file.filename : undefined; // Assuming the body contains the fields to update
+    updateData.avatarUrl = file ? file.filename : undefined;
     return this.userService.updateMe(userId, updateData);
   }
 }

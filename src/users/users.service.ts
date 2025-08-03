@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as fs from 'fs';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -23,6 +24,42 @@ export class UsersService {
   }
 
   async updateMe(id: number, updateData: any) {
+    // check for password update
+    if (
+      updateData.newPassword &&
+      updateData.newPassword !== updateData.newPasswordConfirm
+    ) {
+      throw new BadRequestException(
+        'New password and its confirmation do not match',
+      );
+    }
+    if (updateData.newPassword && !updateData.oldPassword) {
+      throw new BadRequestException(
+        'Old password is required for password change',
+      );
+    }
+    if (
+      updateData.oldPassword &&
+      updateData.newPassword &&
+      updateData.newPassword === updateData.newPasswordConfirm
+    ) {
+      const actualcrypt = (
+        await this.prisma.user.findUnique({
+          where: { id },
+          select: { password: true },
+        })
+      ).password;
+      if (bcrypt.compareSync(updateData.oldPassword, actualcrypt) === false) {
+        throw new BadRequestException('Old password is incorrect');
+      }
+      updateData.password = await bcrypt.hash(
+        updateData.newPassword,
+        parseInt(process.env.SALT_ROUNDS),
+      );
+      delete updateData.newPassword;
+      delete updateData.newPasswordConfirm;
+      delete updateData.oldPassword;
+    }
     try {
       if (updateData.avatarUrl) {
         const formerAvatarUrl = (
