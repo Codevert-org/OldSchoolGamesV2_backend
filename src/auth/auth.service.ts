@@ -20,8 +20,15 @@ export class AuthService {
   async register(body: RegisterDTO): Promise<AuthResponseDTO> {
     const { pseudo, email, password } = body;
     let avatarMessage: string;
-    //console.log('avatarUrl', body.avatarUrl);
     const hash = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS));
+    //! Export in a new service ( then create a route )
+    const pseudoInUse = await this.prisma.user.findFirst({
+      where: { pseudo },
+    });
+    if (pseudoInUse) {
+      throw new BadRequestException('pseudo already in use');
+    }
+
     const existingUser = await this.prisma.user.findFirst({
       where: { email },
     });
@@ -51,6 +58,7 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign({ userId: user.id }),
       avatarMessage: avatarMessage || undefined,
+      user,
     };
   }
 
@@ -64,6 +72,6 @@ export class AuthService {
     if (!isValidPassword) {
       throw new UnauthorizedException('invalid email or password');
     }
-    return { accessToken: this.jwtService.sign({ userId: user.id }) };
+    return { accessToken: this.jwtService.sign({ userId: user.id }), user };
   }
 }
