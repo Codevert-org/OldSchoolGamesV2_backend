@@ -38,18 +38,20 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { pseudo, email, password: hash },
     });
+
     if (body.avatarUrl) {
       try {
         fs.renameSync(
           `./assets/user_avatars/${body.avatarUrl}`,
           `./assets/user_avatars/user_${user.id}${body.avatarUrl.substring(body.avatarUrl.lastIndexOf('.'))}`,
         );
-        await this.prisma.user.update({
+        const updated = await this.prisma.user.update({
           where: { id: user.id },
           data: {
             avatarUrl: `user_${user.id}${body.avatarUrl.substring(body.avatarUrl.lastIndexOf('.'))}`,
           },
         });
+        user.avatarUrl = updated.avatarUrl;
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error renaming avatar file:', e);
