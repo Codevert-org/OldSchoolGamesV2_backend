@@ -57,10 +57,15 @@ export class AuthService {
         console.error('Error renaming avatar file:', e);
       }
     }
+    const responseUser = {
+      id: user.id,
+      pseudo: user.pseudo,
+      avatarUrl: user.avatarUrl,
+    };
     return {
       accessToken: this.jwtService.sign({ userId: user.id }),
       avatarMessage: avatarMessage || undefined,
-      user,
+      user: responseUser,
     };
   }
 
