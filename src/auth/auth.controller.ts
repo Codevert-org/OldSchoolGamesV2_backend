@@ -5,6 +5,7 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -33,7 +34,8 @@ export class AuthController {
     }),
   )
   register(
-    @Body() body: RegisterDTO,
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: RegisterDTO,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<AuthResponseDTO> {
     body.avatarUrl = file ? file.filename : undefined;

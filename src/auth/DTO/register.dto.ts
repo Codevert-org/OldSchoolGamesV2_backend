@@ -27,12 +27,11 @@ export class RegisterDTO {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
-  // NOSONAR
   @Matches(
     /^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])(?=.*[^a-zA-Z0-9\s])([^\s]){8,16}$/gm,
     {
-      message: 'Mot de passe trop faible',
+      message:
+        'Mot de passe non valide :\n 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial, 8 à 16 caractères',
     },
   )
   @ApiProperty({
@@ -41,6 +40,10 @@ export class RegisterDTO {
     example: 'Password123!',
   })
   password: string;
+
+  @IsString()
+  @IsNotEmpty()
+  passwordConfirm: string;
 
   avatarUrl?: string;
 }

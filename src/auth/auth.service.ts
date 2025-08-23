@@ -18,8 +18,19 @@ export class AuthService {
   ) {}
 
   async register(body: RegisterDTO): Promise<AuthResponseDTO> {
-    const { pseudo, email, password } = body;
+    const { pseudo, email, password, passwordConfirm } = body;
     let avatarMessage: string;
+
+    if (!password || !passwordConfirm) {
+      throw new BadRequestException(
+        'Le mot de passe et sa confirmation sont requis',
+      );
+    }
+    if (password !== passwordConfirm) {
+      throw new BadRequestException(
+        'Le mot de passe et sa confirmation ne correspondent pas',
+      );
+    }
     const hash = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS));
     //! Export in a new service ( then create a route )
     const pseudoInUse = await this.prisma.user.findFirst({
