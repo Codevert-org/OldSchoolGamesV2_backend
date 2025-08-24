@@ -21,47 +21,47 @@ export class EventsGateway {
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('EventsGateway');
 
-  private messageTypes = ['movies', 'users', 'team'];
-  private messageContents = {
-    movies: [
-      'Un nouveau film correspondant à vos préférences a été ajouté : Happiness therapy.',
-      'Un nouveau film accessible a été ajouté : Intouchable.',
-      'Quelqu\'un a laissé un commentaire sur la vidéo "La ligne verte" où vous avez aussi commenté.',
-    ],
-    users: [
-      'lokko vient de se connecter',
-      'Whitedog44 vient de se déconnecter',
-      'Un nouvel utilisateur a rejoint StreamAccess : JohnDoe',
-    ],
-    team: [
-      'Le thème par défaut a été mis à jour',
-      'Opération de maintenance prévue ce soir à 23h, le site sera temporairement indisponible',
-    ],
-  };
+  // private messageTypes = ['movies', 'users', 'team'];
+  // private messageContents = {
+  //   movies: [
+  //     'Un nouveau film correspondant à vos préférences a été ajouté : Happiness therapy.',
+  //     'Un nouveau film accessible a été ajouté : Intouchable.',
+  //     'Quelqu\'un a laissé un commentaire sur la vidéo "La ligne verte" où vous avez aussi commenté.',
+  //   ],
+  //   users: [
+  //     'lokko vient de se connecter',
+  //     'Whitedog44 vient de se déconnecter',
+  //     'Un nouvel utilisateur a rejoint StreamAccess : JohnDoe',
+  //   ],
+  //   team: [
+  //     'Le thème par défaut a été mis à jour',
+  //     'Opération de maintenance prévue ce soir à 23h, le site sera temporairement indisponible',
+  //   ],
+  // };
 
-  sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
+  // sleep(ms: number) {
+  //   return new Promise((resolve) => setTimeout(resolve, ms));
+  // }
 
-  async randomMessage() {
-    let delay = 0;
-    let messageType;
-    let messageContent;
-    while (true) {
-      delay = Math.floor(Math.random() * 20000);
-      await this.sleep(delay);
-      messageType = this.messageTypes[Math.floor(Math.random() * 3)];
-      messageContent =
-        this.messageContents[messageType][
-          Math.floor(Math.random() * this.messageContents[messageType].length)
-        ];
-      this.server.emit(messageType, messageContent);
-    }
-  }
+  // async randomMessage() {
+  //   let delay = 0;
+  //   let messageType;
+  //   let messageContent;
+  //   while (true) {
+  //     delay = Math.floor(Math.random() * 20000);
+  //     await this.sleep(delay);
+  //     messageType = this.messageTypes[Math.floor(Math.random() * 3)];
+  //     messageContent =
+  //       this.messageContents[messageType][
+  //         Math.floor(Math.random() * this.messageContents[messageType].length)
+  //       ];
+  //     this.server.emit(messageType, messageContent);
+  //   }
+  // }
 
   afterInit() {
     this.logger.log('Events gateway started');
-    this.randomMessage();
+    //this.randomMessage();
   }
 
   async handleConnection(client: Socket) {
@@ -88,11 +88,25 @@ export class EventsGateway {
       new JwtService().verify(token, { secret: process.env.JWT_SECRET });
       const decodedToken = new JwtService().decode(token);
       const user = await this.usersService.getOne(decodedToken?.['userId']);
+      // TODO cas du user inexistant
+      // TODO cas d'une socket déjà connectée avec ce user
       client['user'] = user;
       this.logger.log(`User connected : ${user.pseudo}`);
 
+      //? send list of connected users to client
       client.emit('welcome', `welcome ${user.pseudo}`);
-      client.broadcast.emit('message', `New user connected : ${user.pseudo}`);
+      const sockets = (await this.server.fetchSockets())
+        .filter((s) => s['user'] !== undefined && s['user'].id !== user.id)
+        .map((s) => s['user']);
+      client.emit('userList', sockets);
+
+      // const userList = Array.from(client.nsp.server.sockets.sockets)
+      //   .map((s) => (s[1]['user'] ? s[1]['user'] : undefined))
+      //   .filter((u) => u !== undefined);
+      // client.emit('welcome', { users: userList });
+
+      // TODO control for status visibility in user settings
+      client.broadcast.emit('users', { eventType: 'connected', user });
     } catch {
       client.emit('error', {
         error: 'Unauthorized',
@@ -104,9 +118,14 @@ export class EventsGateway {
   }
 
   handleDisconnect(client) {
-    const user =
-      client.user !== undefined ? client.user.pseudo : 'Unknown user';
-    this.logger.log(`${user} disconnected`);
+    const user = client.user !== undefined ? client.user : 'Unknown user';
+    this.logger.log(`${user.pseudo} disconnected`);
+    if (client.user !== undefined) {
+      client.broadcast.emit('users', {
+        eventType: 'diconnected',
+        user: client.user.id,
+      });
+    }
   }
 
   @SubscribeMessage('message')
