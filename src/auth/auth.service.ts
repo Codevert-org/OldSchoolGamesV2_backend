@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -9,6 +11,7 @@ import { RegisterDTO } from './DTO/register.dto';
 import * as bcrypt from 'bcrypt';
 import { AuthResponseDTO } from './DTO/auth.dto';
 import * as fs from 'fs';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +19,9 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  @Inject(forwardRef(() => EventsGateway))
+  private readonly eventsGateway: EventsGateway;
 
   async register(body: RegisterDTO): Promise<AuthResponseDTO> {
     const { pseudo, email, password, passwordConfirm } = body;
@@ -32,7 +38,7 @@ export class AuthService {
       );
     }
     const hash = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS));
-    //! Export in a new service ( then create a route )
+    //TODO Export in a new service ( then create a route )
     const pseudoInUse = await this.prisma.user.findFirst({
       where: { pseudo },
     });
@@ -73,6 +79,7 @@ export class AuthService {
       pseudo: user.pseudo,
       avatarUrl: user.avatarUrl,
     };
+    //TODO send a WS notification to all connected users
     return {
       accessToken: this.jwtService.sign({ userId: user.id }),
       avatarMessage: avatarMessage || undefined,
