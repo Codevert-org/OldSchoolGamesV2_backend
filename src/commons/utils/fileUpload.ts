@@ -18,7 +18,7 @@ export const editAvatarFileName = (req: Request, file, callback) => {
         );
       }
       const fileExtName = extname(file.originalname);
-      return callback(null, `user_${userId}${fileExtName}`);
+      return callback(null, `user_${userId}_${Date.now()}${fileExtName}`);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.log(error);
@@ -26,11 +26,11 @@ export const editAvatarFileName = (req: Request, file, callback) => {
     }
   }
   // handle the case where the user is registering
-  const name = sanitize(
+  const name = `${sanitize(
     req.body.pseudo
       .replaceAll(' ', '_')
       .substring(0, file.originalname.lastIndexOf('.')),
-  );
+  )}_${Date.now()}`;
   const fileExtName = extname(file.originalname);
   callback(null, `${name}${fileExtName}`);
 };
