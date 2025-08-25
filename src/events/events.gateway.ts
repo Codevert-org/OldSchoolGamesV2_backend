@@ -122,7 +122,7 @@ export class EventsGateway {
     this.logger.log(`${user.pseudo} disconnected`);
     if (client.user !== undefined) {
       client.broadcast.emit('users', {
-        eventType: 'diconnected',
+        eventType: 'disconnected',
         user: client.user.id,
       });
     }
