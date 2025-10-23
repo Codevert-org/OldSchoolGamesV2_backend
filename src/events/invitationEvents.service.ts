@@ -121,6 +121,14 @@ export class InvitationEventService {
 
   async acceptInvitation(client: Socket, invitationId: number, server: Server) {
     //* delete invitation ( return if deletion failed )
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { id: invitationId },
+    });
+    console.log('invitation from id : ', invitation.fromId);
+    //? check if invitation exists ?
+    const senderSocket = (await server.fetchSockets()).find(
+      (s) => s['user'].id === invitation.fromId,
+    );
     const response = await this.prisma.invitation.delete({
       where: { id: invitationId },
     });
@@ -135,13 +143,6 @@ export class InvitationEventService {
 
     //* create room
     client.join(`${invitationId}`);
-    const invitation = await this.prisma.invitation.findUnique({
-      where: { id: invitationId },
-    });
-    //? check if invitation exists ?
-    const senderSocket = (await server.fetchSockets()).find(
-      (s) => s['user'].id === invitation.fromId,
-    );
     //? handle sender not found or not connected ?
     senderSocket.join(`${invitationId}`);
 
@@ -155,11 +156,18 @@ export class InvitationEventService {
       eventType: 'accepted',
       invitationId,
     });
+    if (senderSocket) {
+      senderSocket.emit('invitation', {
+        eventType: 'accepted',
+        invitationId,
+      });
+    }
+
     server.to(`${invitationId}`).emit('message', 'Game successfully created!');
 
     //? how to close game :
-    // make all Socket instances in the room disconnect (and discard the low-level connection)
-    // server.in(`${invitationId}`).disconnectSockets(true);
+    // make all Socket instances in the room leave the room
+    //server.socketsLeave(`${invitationId}`);
   }
 
   /**
@@ -228,7 +236,7 @@ export class InvitationEventService {
     this.logger.log('checkAcceptedIinvtation');
     const result = true;
     //* check data validity
-    if ((!data.toId && !data.fromId) || !data.invitationId) {
+    if (!data.invitationId) {
       this.throwInvalidEvent(client);
       return false;
     }
