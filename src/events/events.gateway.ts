@@ -35,6 +35,11 @@ export class EventsGateway {
     return this.userEventService.handleDisconnect(client);
   }
 
+  @SubscribeMessage('userList')
+  async handleUserList(client: Socket) {
+    return this.userEventService.handleUserList(client, this.server);
+  }
+
   @SubscribeMessage('invitation')
   async handleInvitation(
     client: Socket,

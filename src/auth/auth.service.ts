@@ -58,14 +58,15 @@ export class AuthService {
 
     if (body.avatarUrl) {
       try {
+        const newAvatarUrl = `user_${user.id}_${Date.now()}${body.avatarUrl.substring(body.avatarUrl.lastIndexOf('.'))}`;
         fs.renameSync(
           `./assets/user_avatars/${body.avatarUrl}`,
-          `./assets/user_avatars/user_${user.id}_${Date.now()}${body.avatarUrl.substring(body.avatarUrl.lastIndexOf('.'))}`,
+          `./assets/user_avatars/${newAvatarUrl}`,
         );
         const updated = await this.prisma.user.update({
           where: { id: user.id },
           data: {
-            avatarUrl: `user_${user.id}${body.avatarUrl.substring(body.avatarUrl.lastIndexOf('.'))}`,
+            avatarUrl: newAvatarUrl,
           },
         });
         user.avatarUrl = updated.avatarUrl;

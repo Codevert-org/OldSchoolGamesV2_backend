@@ -42,10 +42,7 @@ export class UserEventService {
 
       //? send list of connected users to client
       client.emit('welcome', `welcome ${user.pseudo}`);
-      const sockets = (await server.fetchSockets())
-        .filter((s) => s['user'] !== undefined && s['user'].id !== user.id)
-        .map((s) => s['user']);
-      client.emit('userList', sockets);
+      this.handleUserList(client, server);
 
       client.broadcast.emit('users', { eventType: 'connected', user });
     } catch {
@@ -72,6 +69,32 @@ export class UserEventService {
         user: client['user'].id,
       });
     }
+    //* delete invitations from this user
+    await this.prisma.invitation.deleteMany({
+      where: { fromId: client['user']?.id },
+    });
+    // TODO Send canceled invitations to involved users
+
     // TODO search for game rooms of this user and handle game
+  }
+
+  async handleUserList(client: Socket, server: Server) {
+    const sockets = (await server.fetchSockets())
+      .filter((s) => s['user'] !== undefined)
+      .map((s) => s['user']);
+    //* add invite receivedd
+    const invitations = await this.prisma.invitation.findMany({
+      where: {
+        toId: client['user'].id,
+      },
+    });
+    for (const invitation of invitations) {
+      const inviter = sockets.find((u) => u.id === invitation.fromId);
+      if (inviter) {
+        inviter.invite = 'from';
+        inviter.invitationId = invitation.id;
+      }
+    }
+    client.emit('userList', sockets);
   }
 }

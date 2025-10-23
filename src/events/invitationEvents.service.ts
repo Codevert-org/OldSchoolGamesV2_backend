@@ -70,15 +70,16 @@ export class InvitationEventService {
     });
     this.logger.log('invitation created ? :', response);
     if (!response) {
-      client.emit('message', 'Invitation failed!');
+      client.emit('invitation', 'Invitation failed!');
     }
     client.emit('invitation', {
       eventType: 'created',
+      toId: data.toId,
       invitationId: response.id,
     });
     //* notify recipient if online
     const recipientSocket = (await server.fetchSockets()).find(
-      (s) => s['user'] === data.toId,
+      (s) => s['user'].id === data.toId,
     );
     if (recipientSocket) {
       recipientSocket.emit('invitation', {
@@ -96,7 +97,10 @@ export class InvitationEventService {
     });
     this.logger.log('invitation deleted ? :', response);
     if (!response) {
-      client.emit('message', `Invitation ${invitationId} deletion failed!`);
+      client.emit('invitation', {
+        eventType: 'error',
+        message: `Invitation ${invitationId} deletion failed!`,
+      });
     }
     client.emit('invitation', {
       eventType: 'canceled',
@@ -116,7 +120,20 @@ export class InvitationEventService {
   }
 
   async acceptInvitation(client: Socket, invitationId: number, server: Server) {
-    //? create room
+    //* delete invitation ( return if deletion failed )
+    const response = await this.prisma.invitation.delete({
+      where: { id: invitationId },
+    });
+    this.logger.log('invitation deleted ? :', response);
+    if (!response) {
+      client.emit('invitation', {
+        eventType: 'error',
+        message: `Invitation ${invitationId} acceptation failed!`,
+      });
+      return;
+    }
+
+    //* create room
     client.join(`${invitationId}`);
     const invitation = await this.prisma.invitation.findUnique({
       where: { id: invitationId },
@@ -128,21 +145,14 @@ export class InvitationEventService {
     //? handle sender not found or not connected ?
     senderSocket.join(`${invitationId}`);
 
-    //? create game instance and add to room
-    const response = await this.prisma.invitation.delete({
-      where: { id: invitationId },
-    });
-    this.logger.log('invitation deleted ? :', response);
-    if (!response) {
-      client.emit('message', `Invitation ${invitationId} acceptation failed!`);
-      return;
-    }
     //? check if users are still available ( not in game, not disconnected )
+
+    //? create game instance and add to room
 
     // TODO create game instance
     //* emit game creation
-    client.emit('message', {
-      message: `Invitation ${invitationId} accepted!`,
+    client.emit('invitation', {
+      eventType: 'accepted',
       invitationId,
     });
     server.to(`${invitationId}`).emit('message', 'Game successfully created!');
@@ -177,6 +187,10 @@ export class InvitationEventService {
     this.logger.log('checkSentIinvtation');
     const result = true;
     if (!data.toId || data.toId == client['user'].id) {
+      this.throwInvalidEvent(client);
+      return false;
+    }
+    if (!data.game) {
       this.throwInvalidEvent(client);
       return false;
     }
@@ -268,7 +282,8 @@ export class InvitationEventService {
   //? refactor error handling ( throw functions )
   private throwInvalidEvent(client: Socket) {
     this.logger.log('invalid event type');
-    client.emit('message', {
+    client.emit('invitation', {
+      eventType: 'error',
       error: 'Bad Request',
       message: 'Invalid invitation event type',
       code: 400,
@@ -277,7 +292,8 @@ export class InvitationEventService {
 
   private throwUserNotFound(client: Socket) {
     this.logger.log('user not found');
-    client.emit('message', {
+    client.emit('invitation', {
+      eventType: 'error',
       error: 'Bad Request',
       message: 'user not found',
       code: 400,
@@ -286,7 +302,8 @@ export class InvitationEventService {
 
   private throwInvitationAlreadySent(client: Socket, invitationId: number) {
     this.logger.warn('invitation already sent');
-    client.emit('message', {
+    client.emit('invitation', {
+      eventType: 'error',
       error: 'conflict',
       message: 'invitation already sent',
       invitationId,
@@ -295,7 +312,8 @@ export class InvitationEventService {
 
   private throwInvitationAlreadyReceived(client: Socket, invitationId: number) {
     this.logger.warn('invitation already recieved');
-    client.emit('message', {
+    client.emit('invitation', {
+      eventType: 'error',
       error: 'conflict',
       message: 'invitation already received',
       invitationId,
