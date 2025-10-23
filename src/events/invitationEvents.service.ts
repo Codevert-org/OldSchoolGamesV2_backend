@@ -124,7 +124,6 @@ export class InvitationEventService {
     const invitation = await this.prisma.invitation.findUnique({
       where: { id: invitationId },
     });
-    console.log('invitation from id : ', invitation.fromId);
     //? check if invitation exists ?
     const senderSocket = (await server.fetchSockets()).find(
       (s) => s['user'].id === invitation.fromId,
