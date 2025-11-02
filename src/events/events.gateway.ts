@@ -5,8 +5,9 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UserEventService } from './userEvents.service';
-import { InvitationEventService } from './invitationEvents.service';
+import { UserEventService } from './users/userEvents.service';
+import { InvitationEventService } from './invitations/invitationEvents.service';
+import { GameEventService } from './Games/gamesEvents.service';
 
 @Injectable()
 @WebSocketGateway({
@@ -19,6 +20,7 @@ export class EventsGateway {
   constructor(
     private readonly userEventService: UserEventService,
     private readonly invitationEventService: InvitationEventService,
+    private readonly gameEventService: GameEventService,
   ) {}
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('EventsGateway');
@@ -55,5 +57,10 @@ export class EventsGateway {
       data,
       this.server,
     );
+  }
+
+  @SubscribeMessage('game')
+  handleGame(socket: Socket, data: any) {
+    return this.gameEventService.handleGameEvent(socket, this.server, data);
   }
 }
