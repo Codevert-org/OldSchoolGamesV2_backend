@@ -97,6 +97,7 @@ export class MorpionGame {
           this.cells.hasOwnProperty('c' + (cellNumber - testedVector)) &&
           this.cells['c' + (cellNumber - testedVector)] == player
         ) {
+          this.locked = true;
           result = {
             draw: false,
             winner: player,
@@ -111,6 +112,7 @@ export class MorpionGame {
           this.cells.hasOwnProperty('c' + (cellNumber + testedVector * 2)) &&
           this.cells['c' + (cellNumber + testedVector * 2)] == player
         ) {
+          this.locked = true;
           result = {
             draw: false,
             winner: player,
@@ -129,6 +131,7 @@ export class MorpionGame {
       if (!this.cells[cell]) playbleCells.push(cell);
     }
     if (playbleCells.length === 0) {
+      this.locked = true;
       result = { draw: true, winner: false, cells: false };
     }
     //fin du tour, changer de joueur
@@ -169,7 +172,10 @@ export class MorpionGame {
       requestedBy: this.reloadRequestedBy,
     };
   }
-  public getPlayerTurn() {
+  public getTurn() {
     return this.turn;
+  }
+  public getOpponent(user: string) {
+    return this.player1 == user ? this.player2 : this.player1;
   }
 }

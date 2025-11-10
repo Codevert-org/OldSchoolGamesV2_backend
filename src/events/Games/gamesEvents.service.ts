@@ -5,7 +5,7 @@ import { MorpionGame } from './Morpion/Morpion';
 interface IGameEvent {
   roomName: string;
   cellName?: string;
-  eventType: 'play' | 'reload' | 'leave' | 'getTurn';
+  eventType: 'play' | 'reload' | 'leave' | 'getGameData';
 }
 
 @Injectable()
@@ -13,22 +13,32 @@ export class GameEventService {
   private logger = new Logger('GamesEventService');
   private games: Map<string, any> = new Map();
 
-  async handleGameCreation(client: Socket, server: Server, roomName: string) {
+  async handleGameCreation(server: Server, roomName: string) {
     this.logger.log(`Creating game n°${roomName}`);
     const room = await server.in(roomName).fetchSockets();
     const [player1, player2] = room.map((socket) => socket['user'].pseudo);
     this.games.set(roomName, new MorpionGame(player1, player2));
     this.logger.log(
-      `Game n°${roomName} created between players ${player1} and ${player2}`,
+      `Game ${roomName} created between players ${player1} and ${player2}`,
     );
   }
 
   handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
     const game = this.games.get(data.roomName);
     let result: any = null;
-    // TODO handle data errors
-    if (data.eventType === 'getTurn') {
-      result = { turn: game.getPlayerTurn() };
+    // TODO handle data errors ( !data.roomName )
+    if (data.eventType === 'getGameData') {
+      // TODO rename and complete to send opponent's pseudo
+      if (!game) {
+        result = { turn: null, error: 'no game registered' };
+      } else {
+        result = {
+          turn: game.getTurn(),
+          opponent: game.getOpponent(socket['user'].pseudo),
+        };
+        socket.emit('game', { eventType: data.eventType, result });
+        return;
+      }
     }
     if (data.eventType === 'leave') {
       this.games.delete(data.roomName);
@@ -44,8 +54,10 @@ export class GameEventService {
       if (result.ready) {
         this.games.set(
           data.roomName,
-          new MorpionGame(game.player1, game.player2),
+          new MorpionGame(game.player2, game.player1),
         );
+        result.turn = game.getTurn();
+        // TODO notify players about the reload being completed
       }
     }
     server

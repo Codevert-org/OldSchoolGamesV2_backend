@@ -145,7 +145,6 @@ export class InvitationEventService {
 
     // TODO create game instance
     await this.gameEventService.handleGameCreation(
-      client,
       server,
       `${invitation.game}_${invitationId}`,
     );
