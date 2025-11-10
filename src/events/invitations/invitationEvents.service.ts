@@ -1,15 +1,18 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
-import { IInvitationEvent } from './Interfaces/IInvitationEvent';
-import { UsersService } from '../users/users.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { IInvitationEvent } from '../Interfaces/IInvitationEvent';
+import { UsersService } from '../../users/users.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { GameEventService } from '../Games/gamesEvents.service';
 
 @Injectable()
 export class InvitationEventService {
   constructor(private readonly prisma: PrismaService) {}
-  private logger = new Logger('UserEventService');
+  private logger = new Logger('InvitationEventService');
   @Inject(forwardRef(() => UsersService))
   private readonly usersService: UsersService;
+  @Inject(forwardRef(() => GameEventService))
+  private readonly gameEventService: GameEventService;
 
   async handleInvitation(
     client: Socket,
@@ -19,10 +22,8 @@ export class InvitationEventService {
     //* check invitation data validity
     const checkResult = await this.checkInvitationEvent(data, client);
     if (!checkResult) {
-      this.logger.warn('invitation is not valid');
       return;
     }
-    this.logger.log('invitation is valid');
     //* build invitation
     return this.buildInvitation(client, data, server);
   }
@@ -36,18 +37,14 @@ export class InvitationEventService {
     data: IInvitationEvent,
     server: Server,
   ) {
-    this.logger.log('handleSentInvitation');
     switch (data.eventType) {
       case 'sent':
-        this.logger.log('create invitation');
         await this.createInvitation(client, data, server);
         break;
       case 'accepted':
-        this.logger.log('accept invitation');
         await this.acceptInvitation(client, data.invitationId, server);
         break;
       case 'canceled':
-        this.logger.log('cancel invitation');
         await this.deleteInvitation(client, data.invitationId, server);
         break;
       default:
@@ -68,7 +65,6 @@ export class InvitationEventService {
         game: data.game,
       },
     });
-    this.logger.log('invitation created ? :', response);
     if (!response) {
       client.emit('invitation', 'Invitation failed!');
     }
@@ -95,7 +91,6 @@ export class InvitationEventService {
     const response = await this.prisma.invitation.delete({
       where: { id: invitationId },
     });
-    this.logger.log('invitation deleted ? :', response);
     if (!response) {
       client.emit('invitation', {
         eventType: 'error',
@@ -131,7 +126,6 @@ export class InvitationEventService {
     const response = await this.prisma.invitation.delete({
       where: { id: invitationId },
     });
-    this.logger.log('invitation deleted ? :', response);
     if (!response) {
       client.emit('invitation', {
         eventType: 'error',
@@ -141,24 +135,30 @@ export class InvitationEventService {
     }
 
     //* create room
-    client.join(`${invitationId}`);
+    client.join(`${invitation.game}_${invitationId}`);
     //? handle sender not found or not connected ?
-    senderSocket.join(`${invitationId}`);
+    senderSocket.join(`${invitation.game}_${invitationId}`);
 
     //? check if users are still available ( not in game, not disconnected )
 
     //? create game instance and add to room
 
     // TODO create game instance
+    await this.gameEventService.handleGameCreation(
+      server,
+      `${invitation.game}_${invitationId}`,
+    );
     //* emit game creation
     client.emit('invitation', {
       eventType: 'accepted',
       invitationId,
+      game: invitation.game,
     });
     if (senderSocket) {
       senderSocket.emit('invitation', {
         eventType: 'accepted',
         invitationId,
+        game: invitation.game,
       });
     }
 
@@ -191,7 +191,6 @@ export class InvitationEventService {
   }
 
   private async checkSentIinvtation(client: Socket, data: IInvitationEvent) {
-    this.logger.log('checkSentIinvtation');
     const result = true;
     if (!data.toId || data.toId == client['user'].id) {
       this.throwInvalidEvent(client);
@@ -203,7 +202,6 @@ export class InvitationEventService {
     }
     const user = await this.checkUserExists(data.toId);
     if (!user) {
-      this.logger.log('user not found');
       this.throwUserNotFound(client);
       return false;
     }
@@ -232,7 +230,6 @@ export class InvitationEventService {
     client: Socket,
     data: IInvitationEvent,
   ) {
-    this.logger.log('checkAcceptedIinvtation');
     const result = true;
     //* check data validity
     if (!data.invitationId) {
@@ -288,7 +285,6 @@ export class InvitationEventService {
 
   //? refactor error handling ( throw functions )
   private throwInvalidEvent(client: Socket) {
-    this.logger.log('invalid event type');
     client.emit('invitation', {
       eventType: 'error',
       error: 'Bad Request',
@@ -298,7 +294,6 @@ export class InvitationEventService {
   }
 
   private throwUserNotFound(client: Socket) {
-    this.logger.log('user not found');
     client.emit('invitation', {
       eventType: 'error',
       error: 'Bad Request',
@@ -308,7 +303,6 @@ export class InvitationEventService {
   }
 
   private throwInvitationAlreadySent(client: Socket, invitationId: number) {
-    this.logger.warn('invitation already sent');
     client.emit('invitation', {
       eventType: 'error',
       error: 'conflict',
@@ -318,7 +312,6 @@ export class InvitationEventService {
   }
 
   private throwInvitationAlreadyReceived(client: Socket, invitationId: number) {
-    this.logger.warn('invitation already recieved');
     client.emit('invitation', {
       eventType: 'error',
       error: 'conflict',

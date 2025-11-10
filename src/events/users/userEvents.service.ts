@@ -1,8 +1,8 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../../users/users.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UserEventService {
@@ -82,10 +82,15 @@ export class UserEventService {
     const sockets = (await server.fetchSockets())
       .filter((s) => s['user'] !== undefined)
       .map((s) => s['user']);
+    //console.log('User :', client['user'].id);
+    const user = client['user'];
+    if (!user) {
+      return;
+    }
     //* add invite receivedd
     const invitations = await this.prisma.invitation.findMany({
       where: {
-        toId: client['user'].id,
+        toId: user.id,
       },
     });
     for (const invitation of invitations) {
