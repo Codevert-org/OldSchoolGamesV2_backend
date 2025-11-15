@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MorpionGame } from './Morpion/Morpion';
+import { Puissance4Game } from './Puissance4/Puissance4';
 
 interface IGameEvent {
   roomName: string;
-  cellName?: string;
+  data?: any;
   eventType: 'play' | 'reload' | 'leave' | 'getGameData';
 }
 
@@ -13,11 +14,25 @@ export class GameEventService {
   private logger = new Logger('GamesEventService');
   private games: Map<string, any> = new Map();
 
-  async handleGameCreation(server: Server, roomName: string) {
+  GAMES_REGISTRY: Record<
+    string,
+    new (player1: string, player2: string) => any
+  > = {
+    morpion: MorpionGame,
+    puissance4: Puissance4Game,
+  };
+
+  async handleGameCreation(server: Server, game: string, invitationId: number) {
+    const roomName = `${game}_${invitationId}`;
     this.logger.log(`Creating game n°${roomName}`);
     const room = await server.in(roomName).fetchSockets();
     const [player1, player2] = room.map((socket) => socket['user'].pseudo);
-    this.games.set(roomName, new MorpionGame(player1, player2));
+    //* choose game based on game
+    const gameClass = this.GAMES_REGISTRY[game];
+    if (!gameClass) {
+      throw new Error(`Game ${game} not found in game registry`);
+    }
+    this.games.set(roomName, new gameClass(player1, player2));
     this.logger.log(
       `Game ${roomName} created between players ${player1} and ${player2}`,
     );
@@ -28,7 +43,6 @@ export class GameEventService {
     let result: any = null;
     // TODO handle data errors ( !data.roomName )
     if (data.eventType === 'getGameData') {
-      // TODO rename and complete to send opponent's pseudo
       if (!game) {
         result = { turn: null, error: 'no game registered' };
       } else {
@@ -45,9 +59,13 @@ export class GameEventService {
       this.logger.log(
         `Game ${data.roomName} closed by ${socket['user'].pseudo}`,
       );
+      //? how to close game :
+      // make all Socket instances in the room leave the room
+      server.socketsLeave(data.roomName);
     }
     if (data.eventType === 'play') {
-      result = game.play(socket['user'].pseudo, data.cellName);
+      // TODO hangle game.play errors
+      result = game.play(socket['user'].pseudo, data);
     }
     if (data.eventType === 'reload') {
       result = game.requestReload(socket['user'].pseudo);
