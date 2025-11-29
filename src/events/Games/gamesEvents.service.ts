@@ -38,7 +38,7 @@ export class GameEventService {
     );
   }
 
-  handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
+  async handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
     const game = this.games.get(data.roomName);
     let result: any = null;
     // TODO handle data errors ( !data.roomName )
@@ -59,9 +59,15 @@ export class GameEventService {
       this.logger.log(
         `Game ${data.roomName} closed by ${socket['user'].pseudo}`,
       );
-      //? how to close game :
-      // make all Socket instances in the room leave the room
+      //TODO notify other player that game has ended
+      const opponentSocket = (
+        await server.in(data.roomName).fetchSockets()
+      ).filter((s) => s['user'].pseudo !== socket['user'].pseudo);
+      //* make all Socket instances in the room leave the room
       server.socketsLeave(data.roomName);
+      opponentSocket[0]?.emit('game', {
+        eventType: 'leave',
+      });
     }
     if (data.eventType === 'play') {
       // TODO hangle game.play errors
@@ -70,12 +76,15 @@ export class GameEventService {
     if (data.eventType === 'reload') {
       result = game.requestReload(socket['user'].pseudo);
       if (result.ready) {
+        const gameClass = this.GAMES_REGISTRY[data.roomName.split('_')[0]];
+        if (!gameClass) {
+          throw new Error(`Game ${game} not found in game registry`);
+        }
         this.games.set(
           data.roomName,
-          new MorpionGame(game.player2, game.player1),
+          new gameClass(game.player1, game.player2),
         );
         result.turn = game.getTurn();
-        // TODO notify players about the reload being completed
       }
     }
     server

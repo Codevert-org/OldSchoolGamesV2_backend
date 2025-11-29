@@ -38,6 +38,7 @@ export class Puissance4Game extends GridGame {
     for (let i = 6; i >= 0; i--) {
       if (!this.cells[`c${col}${i}`]) {
         cellName = `c${col}${i}`;
+        break;
       }
     }
     this.checkPlay(player, cellName);
@@ -67,11 +68,13 @@ export class Puissance4Game extends GridGame {
     }
     //* compter les pions alignés.
     if (validvectors.length > 0) {
-      // Ici, pour chaque validVector, on a deux pions alignés.
-      let aligned = 2;
+      let aligned: number;
       const cellNumber = Number(cellName.substring(1));
-      const winningCells = [cellName];
+      let winningCells: string[];
       for (const vector of validvectors) {
+        winningCells = [cellName];
+        // Ici, pour chaque validVector, on a deux pions alignés.
+        aligned = 2;
         winningCells.push(`c${cellNumber + vector}`);
         while (true) {
           if (
@@ -95,15 +98,15 @@ export class Puissance4Game extends GridGame {
             break;
           }
         }
-      }
-      //* si 4 pions, assigner result
-      if (aligned > 3) {
-        this.locked = true;
-        result = {
-          draw: false,
-          winner: player,
-          cells: winningCells,
-        };
+        //* si 4 pions, assigner result
+        if (aligned > 3) {
+          this.locked = true;
+          result = {
+            draw: false,
+            winner: player,
+            cells: winningCells,
+          };
+        }
       }
     }
     //* Si pas de gagnant, tester le match nul
@@ -121,6 +124,6 @@ export class Puissance4Game extends GridGame {
     }
 
     //* fin du tour
-    this.endTurn(result, tokenToReturn, cellName);
+    return this.endTurn(result, tokenToReturn, cellName);
   }
 }

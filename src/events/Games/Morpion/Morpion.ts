@@ -89,6 +89,6 @@ export class MorpionGame extends GridGame {
     }
 
     //* fin du tour
-    this.endTurn(result, tokenToReturn, cell);
+    return this.endTurn(result, tokenToReturn, cell);
   }
 }
