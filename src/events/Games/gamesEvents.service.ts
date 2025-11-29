@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MorpionGame } from './Morpion/Morpion';
+import { Puissance4Game } from './Puissance4/Puissance4';
 
 interface IGameEvent {
   roomName: string;
-  cellName?: string;
+  data?: any;
   eventType: 'play' | 'reload' | 'leave' | 'getGameData';
 }
 
@@ -13,22 +14,35 @@ export class GameEventService {
   private logger = new Logger('GamesEventService');
   private games: Map<string, any> = new Map();
 
-  async handleGameCreation(server: Server, roomName: string) {
+  GAMES_REGISTRY: Record<
+    string,
+    new (player1: string, player2: string) => any
+  > = {
+    morpion: MorpionGame,
+    puissance4: Puissance4Game,
+  };
+
+  async handleGameCreation(server: Server, game: string, invitationId: number) {
+    const roomName = `${game}_${invitationId}`;
     this.logger.log(`Creating game n°${roomName}`);
     const room = await server.in(roomName).fetchSockets();
     const [player1, player2] = room.map((socket) => socket['user'].pseudo);
-    this.games.set(roomName, new MorpionGame(player1, player2));
+    //* choose game based on game
+    const gameClass = this.GAMES_REGISTRY[game];
+    if (!gameClass) {
+      throw new Error(`Game ${game} not found in game registry`);
+    }
+    this.games.set(roomName, new gameClass(player1, player2));
     this.logger.log(
       `Game ${roomName} created between players ${player1} and ${player2}`,
     );
   }
 
-  handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
+  async handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
     const game = this.games.get(data.roomName);
     let result: any = null;
     // TODO handle data errors ( !data.roomName )
     if (data.eventType === 'getGameData') {
-      // TODO rename and complete to send opponent's pseudo
       if (!game) {
         result = { turn: null, error: 'no game registered' };
       } else {
@@ -45,19 +59,32 @@ export class GameEventService {
       this.logger.log(
         `Game ${data.roomName} closed by ${socket['user'].pseudo}`,
       );
+      //TODO notify other player that game has ended
+      const opponentSocket = (
+        await server.in(data.roomName).fetchSockets()
+      ).filter((s) => s['user'].pseudo !== socket['user'].pseudo);
+      //* make all Socket instances in the room leave the room
+      server.socketsLeave(data.roomName);
+      opponentSocket[0]?.emit('game', {
+        eventType: 'leave',
+      });
     }
     if (data.eventType === 'play') {
-      result = game.play(socket['user'].pseudo, data.cellName);
+      // TODO hangle game.play errors
+      result = game.play(socket['user'].pseudo, data);
     }
     if (data.eventType === 'reload') {
       result = game.requestReload(socket['user'].pseudo);
       if (result.ready) {
+        const gameClass = this.GAMES_REGISTRY[data.roomName.split('_')[0]];
+        if (!gameClass) {
+          throw new Error(`Game ${game} not found in game registry`);
+        }
         this.games.set(
           data.roomName,
-          new MorpionGame(game.player2, game.player1),
+          new gameClass(game.player1, game.player2),
         );
         result.turn = game.getTurn();
-        // TODO notify players about the reload being completed
       }
     }
     server

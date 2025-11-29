@@ -143,11 +143,24 @@ export class InvitationEventService {
 
     //? create game instance and add to room
 
-    // TODO create game instance
-    await this.gameEventService.handleGameCreation(
-      server,
-      `${invitation.game}_${invitationId}`,
-    );
+    try {
+      await this.gameEventService.handleGameCreation(
+        server,
+        invitation.game,
+        invitationId,
+      );
+    } catch {
+      const error = {
+        eventType: 'error',
+        message: `Game creation for invitation ${invitationId} failed!`,
+      };
+      client.emit('invitation', error);
+      if (senderSocket) {
+        senderSocket.emit('invitation', error);
+      }
+      return;
+    }
+
     //* emit game creation
     client.emit('invitation', {
       eventType: 'accepted',
