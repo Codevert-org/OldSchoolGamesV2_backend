@@ -82,7 +82,7 @@ export class GameEventService {
         }
         this.games.set(
           data.roomName,
-          new gameClass(game.player1, game.player2),
+          new gameClass(game.player2, game.player1),
         );
         result.turn = this.games.get(data.roomName).getTurn();
       }
