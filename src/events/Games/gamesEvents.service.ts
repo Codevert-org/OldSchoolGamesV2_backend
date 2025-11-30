@@ -84,7 +84,7 @@ export class GameEventService {
           data.roomName,
           new gameClass(game.player1, game.player2),
         );
-        result.turn = game.getTurn();
+        result.turn = this.games.get(data.roomName).getTurn();
       }
     }
     server
