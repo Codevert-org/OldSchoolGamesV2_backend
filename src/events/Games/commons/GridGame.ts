@@ -22,13 +22,14 @@ export abstract class GridGame {
       return {
         error: 'Invalid player',
         message: 'joueur invalide',
-        result: false,
+        success: false,
       };
     }
     if (player != this.turn) {
       return {
         error: 'Wrong turn',
         message: "Ce n'est pas votre tour!",
+        success: false,
         result: false,
       };
     }
@@ -36,6 +37,7 @@ export abstract class GridGame {
       return {
         error: 'Wrong cell name',
         message: "Cette case n'existe pas",
+        success: false,
         result: false,
       };
     }
@@ -43,6 +45,7 @@ export abstract class GridGame {
       return {
         error: 'Already played',
         message: 'case déjà jouée!',
+        success: false,
         result: false,
       };
     }
@@ -50,9 +53,11 @@ export abstract class GridGame {
       return {
         error: 'Game locked',
         message: 'Partie terminée, en attente de rechargement',
+        success: false,
         result: false,
       };
     }
+    return { success: true, result: false };
   }
   protected switchTurn() {
     this.turn = this.turn === this.player1 ? this.player2 : this.player1;

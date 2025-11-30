@@ -14,8 +14,8 @@ export class Puissance4Game extends GridGame {
     string | false
   > = Object.fromEntries(
     Array.from({ length: 42 }, (_, i) => {
-      const col = Math.floor(i / 7) + 1;
-      const row = (i % 6) + 1;
+      const col = (i % 7) + 1;
+      const row = Math.floor(i / 7) + 1;
       return [`c${col}${row}`, false];
     }),
   ) as Record<
@@ -41,7 +41,10 @@ export class Puissance4Game extends GridGame {
         break;
       }
     }
-    this.checkPlay(player, cellName);
+    const check = this.checkPlay(player, cellName);
+    if (!check.success) {
+      return check;
+    }
 
     const tokenToReturn = this.token.get(
       player === this.player1 ? 'player1' : 'player2',
@@ -87,12 +90,16 @@ export class Puissance4Game extends GridGame {
             break;
           }
         }
+        let alignedOpposite = 1;
         while (true) {
           if (
-            this.cells.hasOwnProperty(`c${cellNumber - vector * aligned}`) &&
-            this.cells[`c${cellNumber - vector * aligned}`] === player
+            this.cells.hasOwnProperty(
+              `c${cellNumber - vector * alignedOpposite}`,
+            ) &&
+            this.cells[`c${cellNumber - vector * alignedOpposite}`] === player
           ) {
             aligned++;
+            alignedOpposite++;
             winningCells.push(`c${cellNumber - vector * aligned}`);
           } else {
             break;

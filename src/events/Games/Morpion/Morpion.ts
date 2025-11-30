@@ -22,7 +22,10 @@ export class MorpionGame extends GridGame {
     const cell = data.cellName;
     // TODO: validate cellName or throw error
     let result: IGridGameResult | false = false;
-    this.checkPlay(player, cell);
+    const check = this.checkPlay(player, cell);
+    if (!check.success) {
+      return check;
+    }
 
     const tokenToReturn = this.token.get(
       player === this.player1 ? 'player1' : 'player2',
