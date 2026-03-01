@@ -6,8 +6,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UserEventService {
-  constructor(private readonly prisma: PrismaService) {}
-  private logger = new Logger('UserEventService');
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
+  private readonly logger = new Logger('UserEventService');
   @Inject(forwardRef(() => UsersService))
   private readonly usersService: UsersService;
 
@@ -32,16 +35,14 @@ export class UserEventService {
       return;
     }
     try {
-      new JwtService().verify(token, { secret: process.env.JWT_SECRET });
-      const decodedToken = new JwtService().decode(token);
+      this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
+      const decodedToken = this.jwtService.decode(token);
       const user = await this.usersService.getOne(decodedToken?.['userId']);
       //? cas du user inexistant ?
       //? cas d'une socket déjà connectée avec ce user ?
       client['user'] = user;
       this.logger.log(`User connected : ${user.pseudo}`);
 
-      //? send list of connected users to client
-      client.emit('welcome', `welcome ${user.pseudo}`);
       this.handleUserList(client, server);
 
       client.broadcast.emit('users', { eventType: 'connected', user });
@@ -56,25 +57,20 @@ export class UserEventService {
   }
 
   async handleDisconnect(client: Socket) {
+    if (client['user'] === undefined) {
+      this.logger.log('Unknown user disconnected');
+      return;
+    }
     await this.prisma.invitation.deleteMany({
       where: {
-        OR: [{ fromId: client['user']?.id }, { toId: client['user']?.id }],
+        OR: [{ fromId: client['user'].id }, { toId: client['user'].id }],
       },
     });
-    const user = client['user'] !== undefined ? client['user'] : 'Unknown user';
-    this.logger.log(`${user.pseudo} disconnected`);
-    if (client['user'] !== undefined) {
-      client.broadcast.emit('users', {
-        eventType: 'disconnected',
-        user: client['user'].id,
-      });
-    }
-    //* delete invitations from this user
-    await this.prisma.invitation.deleteMany({
-      where: { fromId: client['user']?.id },
+    client.broadcast.emit('users', {
+      eventType: 'disconnected',
+      user: client['user'].id,
     });
-    // TODO Send canceled invitations to involved users
-
+    this.logger.log(`${client['user'].pseudo} disconnected`);
     // TODO search for game rooms of this user and handle game
   }
 
@@ -82,16 +78,12 @@ export class UserEventService {
     const sockets = (await server.fetchSockets())
       .filter((s) => s['user'] !== undefined)
       .map((s) => s['user']);
-    //console.log('User :', client['user'].id);
     const user = client['user'];
     if (!user) {
       return;
     }
-    //* add invite receivedd
     const invitations = await this.prisma.invitation.findMany({
-      where: {
-        toId: user.id,
-      },
+      where: { toId: user.id },
     });
     for (const invitation of invitations) {
       const inviter = sockets.find((u) => u.id === invitation.fromId);

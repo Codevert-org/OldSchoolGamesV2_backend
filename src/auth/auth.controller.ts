@@ -10,10 +10,10 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDTO } from './DTO/register.dto';
+import { LoginDTO } from './DTO/login.dto';
 import { AuthResponseDTO } from './DTO/auth.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { editAvatarFileName } from '../commons/utils/fileUpload';
+import { avatarMulterConfig } from '../commons/multer.config';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -22,17 +22,7 @@ export class AuthController {
 
   @Post('register')
   @ApiOkResponse({ type: AuthResponseDTO })
-  @UseInterceptors(
-    FileInterceptor('avatar', {
-      limits: {
-        fileSize: 8000000, // Compliant: 8MB
-      },
-      storage: diskStorage({
-        destination: './assets/user_avatars',
-        filename: editAvatarFileName,
-      }),
-    }),
-  )
+  @UseInterceptors(FileInterceptor('avatar', avatarMulterConfig))
   register(
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     body: RegisterDTO,
@@ -46,7 +36,8 @@ export class AuthController {
   @HttpCode(200)
   @ApiOkResponse({ type: AuthResponseDTO })
   login(
-    @Body() body: { email: string; password: string },
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: LoginDTO,
   ): Promise<AuthResponseDTO> {
     return this.authService.login(body.email, body.password);
   }
