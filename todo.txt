@@ -143,6 +143,36 @@
     - getCells() ajouté à GridGame, renvoyé dans handleGetGameData
     - IGameEventData : cells? typé
 
+=== TESTS REVERSI ===
+
+[ ] Coup de base
+    - Poser un pion sur une case valide → pion affiché, pions adverses retournés avec animation flip
+    - Le tour passe bien à l'adversaire après le coup
+
+[ ] Coup invalide
+    - Cliquer sur une case qui ne retourne aucun pion → message "Vous ne pouvez pas jouer ici"
+    - Cliquer sur une case déjà occupée → message d'erreur de checkPlay
+
+[ ] Cas pass
+    - Simuler une position où un joueur n'a aucun coup valide
+    - Message affiché : "xxx ne peut pas jouer — yyy rejoue"
+    - Le joueur courant peut rejouer sans action de l'adversaire
+
+[ ] Fin de partie
+    - Plateau plein → décompte correct, bon gagnant affiché (ou match nul)
+    - Double-pass → fin de partie déclenchée même si le plateau n'est pas plein
+
+[ ] Animation flip
+    - Les pions retournés animent bien (ellipse qui s'aplatit puis se gonfle dans l'autre couleur)
+    - cellColorsRef correctement alimenté : fromColor jamais undefined sur un pion existant
+
+[ ] Reconnexion / reload
+    - Quitter et revenir sur la partie en cours → plateau restauré via getGameData
+    - Reload accepté par les deux joueurs → plateau réinitialisé aux 4 pions de départ
+
+[ ] Anti wrap-around
+    - Vérifier qu'un alignement bord col 8 → col 1 n'est pas détecté comme valide
+
 === README.md ===
 
 [ ] Mettre à jour la structure de fichiers (ajouter Puissance4/, Reversi/)

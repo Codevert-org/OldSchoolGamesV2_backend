@@ -131,9 +131,6 @@ export class GameEventService {
       if (!gameClass) {
         throw new Error(
           `Game ${data.roomName.split('_')[0]} not found in game registry`,
-        this.games.set(
-          data.roomName,
-          new gameClass(game.player2, game.player1),
         );
       }
       this.games.set(
