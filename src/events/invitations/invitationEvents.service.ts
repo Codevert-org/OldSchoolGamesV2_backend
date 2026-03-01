@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { IInvitationEvent } from '../Interfaces/IInvitationEvent';
 import { UsersService } from '../../users/users.service';
@@ -8,7 +8,6 @@ import { GameEventService } from '../Games/gamesEvents.service';
 @Injectable()
 export class InvitationEventService {
   constructor(private readonly prisma: PrismaService) {}
-  private logger = new Logger('InvitationEventService');
   @Inject(forwardRef(() => UsersService))
   private readonly usersService: UsersService;
   @Inject(forwardRef(() => GameEventService))
@@ -65,9 +64,6 @@ export class InvitationEventService {
         game: data.game,
       },
     });
-    if (!response) {
-      client.emit('invitation', 'Invitation failed!');
-    }
     client.emit('invitation', {
       eventType: 'created',
       toId: data.toId,
@@ -91,12 +87,6 @@ export class InvitationEventService {
     const response = await this.prisma.invitation.delete({
       where: { id: invitationId },
     });
-    if (!response) {
-      client.emit('invitation', {
-        eventType: 'error',
-        message: `Invitation ${invitationId} deletion failed!`,
-      });
-    }
     client.emit('invitation', {
       eventType: 'canceled',
       invitationId,
@@ -115,14 +105,19 @@ export class InvitationEventService {
   }
 
   async acceptInvitation(client: Socket, invitationId: number, server: Server) {
-    //* delete invitation ( return if deletion failed )
     const invitation = await this.prisma.invitation.findUnique({
       where: { id: invitationId },
     });
-    //? check if invitation exists ?
     const senderSocket = (await server.fetchSockets()).find(
       (s) => s['user'].id === invitation.fromId,
     );
+    if (!senderSocket) {
+      client.emit('invitation', {
+        eventType: 'error',
+        message: 'The invitation sender is no longer connected',
+      });
+      return;
+    }
     const response = await this.prisma.invitation.delete({
       where: { id: invitationId },
     });
@@ -136,12 +131,7 @@ export class InvitationEventService {
 
     //* create room
     client.join(`${invitation.game}_${invitationId}`);
-    //? handle sender not found or not connected ?
     senderSocket.join(`${invitation.game}_${invitationId}`);
-
-    //? check if users are still available ( not in game, not disconnected )
-
-    //? create game instance and add to room
 
     try {
       await this.gameEventService.handleGameCreation(
@@ -155,31 +145,18 @@ export class InvitationEventService {
         message: `Game creation for invitation ${invitationId} failed!`,
       };
       client.emit('invitation', error);
-      if (senderSocket) {
-        senderSocket.emit('invitation', error);
-      }
+      senderSocket.emit('invitation', error);
       return;
     }
 
     //* emit game creation
-    client.emit('invitation', {
+    const accepted = {
       eventType: 'accepted',
       invitationId,
       game: invitation.game,
-    });
-    if (senderSocket) {
-      senderSocket.emit('invitation', {
-        eventType: 'accepted',
-        invitationId,
-        game: invitation.game,
-      });
-    }
-
-    server.to(`${invitationId}`).emit('message', 'Game successfully created!');
-
-    //? how to close game :
-    // make all Socket instances in the room leave the room
-    //server.socketsLeave(`${invitationId}`);
+    };
+    client.emit('invitation', accepted);
+    senderSocket.emit('invitation', accepted);
   }
 
   /**
@@ -192,19 +169,18 @@ export class InvitationEventService {
   ): Promise<boolean> {
     switch (data.eventType) {
       case 'sent':
-        return await this.checkSentIinvtation(client, data);
+        return await this.checkSentInvitation(client, data);
       case 'accepted':
-        return this.checkAcceptedIinvtation(client, data);
+        return this.checkAcceptedInvitation(client, data);
       case 'canceled':
-        return this.checkCanceledIinvtation();
+        return this.checkCanceledInvitation(client, data);
       default:
         this.throwInvalidEvent(client);
         return false;
     }
   }
 
-  private async checkSentIinvtation(client: Socket, data: IInvitationEvent) {
-    const result = true;
+  private async checkSentInvitation(client: Socket, data: IInvitationEvent) {
     if (!data.toId || data.toId == client['user'].id) {
       this.throwInvalidEvent(client);
       return false;
@@ -236,14 +212,13 @@ export class InvitationEventService {
       return false;
     }
 
-    return result;
+    return true;
   }
 
-  private async checkAcceptedIinvtation(
+  private async checkAcceptedInvitation(
     client: Socket,
     data: IInvitationEvent,
   ) {
-    const result = true;
     //* check data validity
     if (!data.invitationId) {
       this.throwInvalidEvent(client);
@@ -274,12 +249,31 @@ export class InvitationEventService {
       this.throwUserNotFound(client);
       return false;
     }
-    return result;
+    return true;
   }
 
-  // TODO check cancelation validity
-  private async checkCanceledIinvtation(): Promise<boolean> {
-    this.logger.log('checkCanceledIinvtation');
+  private async checkCanceledInvitation(
+    client: Socket,
+    data: IInvitationEvent,
+  ): Promise<boolean> {
+    if (!data.invitationId) {
+      this.throwInvalidEvent(client);
+      return false;
+    }
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { id: data.invitationId },
+    });
+    if (!invitation) {
+      this.throwInvalidEvent(client);
+      return false;
+    }
+    if (
+      invitation.fromId !== client['user'].id &&
+      invitation.toId !== client['user'].id
+    ) {
+      this.throwInvalidEvent(client);
+      return false;
+    }
     return true;
   }
 
@@ -296,7 +290,6 @@ export class InvitationEventService {
    * * Error events
    */
 
-  //? refactor error handling ( throw functions )
   private throwInvalidEvent(client: Socket) {
     client.emit('invitation', {
       eventType: 'error',

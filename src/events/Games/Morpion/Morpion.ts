@@ -33,10 +33,9 @@ export class MorpionGame extends GridGame {
     this.cells[cell] = player;
     // Tester victoire
     //établir les cellules valides
-    const vectors = [-11, -10, -9, +1, +11, +10, +9, -1];
     const cellNumber: number = Number(cell.substring(1));
     const validvectors = [];
-    for (const vector of vectors) {
+    for (const vector of this.vectors) {
       const vectorCell = 'c' + (cellNumber + vector);
       if (this.cells.hasOwnProperty(vectorCell)) {
         validvectors.push(vector);

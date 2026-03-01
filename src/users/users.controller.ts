@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Put,
@@ -6,13 +7,15 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { editAvatarFileName } from '../commons/utils/fileUpload';
+import { avatarMulterConfig } from '../commons/multer.config';
+import { UpdateMeDTO } from './DTO/updateMe.dto';
+import { Request } from 'express';
 
 @Controller('users')
 @ApiTags('users')
@@ -23,7 +26,7 @@ export class UsersController {
   @ApiOkResponse()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  getMe(@Req() req) {
+  getMe(@Req() req: Request & { user: { id: number } }) {
     return this.userService.getOne(req.user.id);
   }
 
@@ -31,21 +34,14 @@ export class UsersController {
   @ApiOkResponse()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(
-    FileInterceptor('avatar', {
-      limits: {
-        fileSize: 8000000, // Compliant: 8MB
-      },
-      storage: diskStorage({
-        destination: './assets/user_avatars',
-        filename: editAvatarFileName,
-      }),
-    }),
-  )
-  updateMe(@Req() req, @UploadedFile() file) {
-    const userId = req.user.id;
-    const updateData = req.body;
-    updateData.avatarUrl = file ? file.filename : undefined;
-    return this.userService.updateMe(userId, updateData);
+  @UseInterceptors(FileInterceptor('avatar', avatarMulterConfig))
+  updateMe(
+    @Req() req: Request & { user: { id: number } },
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: UpdateMeDTO,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    body.avatarUrl = file ? file.filename : undefined;
+    return this.userService.updateMe(req.user.id, body);
   }
 }

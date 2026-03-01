@@ -3,6 +3,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -10,8 +11,9 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDTO } from './DTO/register.dto';
 import * as bcrypt from 'bcrypt';
 import { AuthResponseDTO } from './DTO/auth.dto';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { EventsGateway } from '../events/events.gateway';
+import { SALT_ROUNDS } from '../commons/utils/env';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  private readonly logger = new Logger(AuthService.name);
 
   @Inject(forwardRef(() => EventsGateway))
   private readonly eventsGateway: EventsGateway;
@@ -37,8 +41,7 @@ export class AuthService {
         'Le mot de passe et sa confirmation ne correspondent pas',
       );
     }
-    const hash = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS));
-    //TODO Export in a new service ( then create a route )
+    const hash = await bcrypt.hash(password, SALT_ROUNDS);
     const pseudoInUse = await this.prisma.user.findFirst({
       where: { pseudo },
     });
@@ -71,8 +74,8 @@ export class AuthService {
         });
         user.avatarUrl = updated.avatarUrl;
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Error renaming avatar file:', e);
+        this.logger.error('Error renaming avatar file', e);
+        avatarMessage = 'Avatar upload failed, user created without avatar';
       }
     }
     const responseUser = {
@@ -80,7 +83,7 @@ export class AuthService {
       pseudo: user.pseudo,
       avatarUrl: user.avatarUrl,
     };
-    //TODO send a WS notification to all connected users
+    this.eventsGateway?.notifyUserRegistered(responseUser);
     return {
       accessToken: this.jwtService.sign({ userId: user.id }),
       avatarMessage: avatarMessage || undefined,
@@ -92,9 +95,8 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
-    const isValidPassword = !user
-      ? false
-      : await bcrypt.compare(password, user.password);
+    const isValidPassword =
+      user && (await bcrypt.compare(password, user.password));
     if (!isValidPassword) {
       throw new UnauthorizedException('invalid email or password');
     }

@@ -16,8 +16,19 @@ export abstract class GridGame {
   protected cells: Record<string, string | false>;
   protected locked: boolean;
   protected reloadRequestedBy: string[] = [];
+  protected vectors: number[] = [-11, -10, -9, +1, +11, +10, +9, -1];
+
+  public abstract play(player: string, data: any): any;
 
   protected checkPlay(player: string, cell: string) {
+    if (this.locked) {
+      return {
+        error: 'Game locked',
+        message: 'Partie terminée, en attente de rechargement',
+        success: false,
+        result: false,
+      };
+    }
     if (player !== this.player1 && player !== this.player2) {
       return {
         error: 'Invalid player',
@@ -49,14 +60,6 @@ export abstract class GridGame {
         result: false,
       };
     }
-    if (this.locked) {
-      return {
-        error: 'Game locked',
-        message: 'Partie terminée, en attente de rechargement',
-        success: false,
-        result: false,
-      };
-    }
     return { success: true, result: false };
   }
   protected switchTurn() {
@@ -83,8 +86,17 @@ export abstract class GridGame {
   public getTurn() {
     return this.turn;
   }
+  public getPlayer1() {
+    return this.player1;
+  }
+  public getPlayer2() {
+    return this.player2;
+  }
   public getOpponent(user: string) {
     return this.player1 == user ? this.player2 : this.player1;
+  }
+  public getCells() {
+    return this.cells;
   }
   public requestReload(player: string) {
     if (player !== this.player1 && player !== this.player2) {
