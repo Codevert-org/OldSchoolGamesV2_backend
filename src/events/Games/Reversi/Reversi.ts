@@ -71,7 +71,12 @@ export class ReversiGame extends GridGame {
       if (!currentCanPlay) {
         // Fin de partie : plus aucun coup possible
         this.locked = true;
-        return this.buildResult(this.computeResult(), tokenToReturn, cell, cellsToFlip);
+        return this.buildResult(
+          this.computeResult(),
+          tokenToReturn,
+          cell,
+          cellsToFlip,
+        );
       }
       // L'adversaire passe son tour, le joueur courant rejoue
       return this.buildResult(false, tokenToReturn, cell, cellsToFlip, {

@@ -37,7 +37,11 @@ export class EventsGateway {
     return this.userEventService.handleDisconnect(client);
   }
 
-  notifyUserRegistered(user: { id: number; pseudo: string; avatarUrl: string }) {
+  notifyUserRegistered(user: {
+    id: number;
+    pseudo: string;
+    avatarUrl: string;
+  }) {
     this.server.emit('users', { eventType: 'registered', user });
   }
 

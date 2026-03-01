@@ -8,7 +8,7 @@ import { GameEventService } from '../Games/gamesEvents.service';
 @Injectable()
 export class InvitationEventService {
   constructor(private readonly prisma: PrismaService) {}
-@Inject(forwardRef(() => UsersService))
+  @Inject(forwardRef(() => UsersService))
   private readonly usersService: UsersService;
   @Inject(forwardRef(() => GameEventService))
   private readonly gameEventService: GameEventService;

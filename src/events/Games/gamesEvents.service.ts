@@ -45,7 +45,10 @@ export class GameEventService {
 
   async handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
     if (!data.roomName) {
-      socket.emit('game', { eventType: data.eventType, error: 'roomName manquant' });
+      socket.emit('game', {
+        eventType: data.eventType,
+        error: 'roomName manquant',
+      });
       return;
     }
     const game = this.games.get(data.roomName);
@@ -64,9 +67,17 @@ export class GameEventService {
     }
   }
 
-  private handleGetGameData(socket: Socket, data: IGameEvent, game: GridGame | undefined) {
+  private handleGetGameData(
+    socket: Socket,
+    data: IGameEvent,
+    game: GridGame | undefined,
+  ) {
     const result = game
-      ? { turn: game.getTurn(), opponent: game.getOpponent(socket['user'].pseudo), cells: game.getCells() }
+      ? {
+          turn: game.getTurn(),
+          opponent: game.getOpponent(socket['user'].pseudo),
+          cells: game.getCells(),
+        }
       : { turn: null, error: 'no game registered' };
     socket.emit('game', { eventType: data.eventType, result });
   }
@@ -74,25 +85,43 @@ export class GameEventService {
   private async handleLeave(socket: Socket, server: Server, data: IGameEvent) {
     this.games.delete(data.roomName);
     this.logger.log(`Game ${data.roomName} closed by ${socket['user'].pseudo}`);
-    const opponentSocket = (
-      await server.in(data.roomName).fetchSockets()
-    ).find((s) => s['user'].pseudo !== socket['user'].pseudo);
+    const opponentSocket = (await server.in(data.roomName).fetchSockets()).find(
+      (s) => s['user'].pseudo !== socket['user'].pseudo,
+    );
     server.socketsLeave(data.roomName);
     opponentSocket?.emit('game', { eventType: 'leave' });
   }
 
-  private handlePlay(socket: Socket, server: Server, data: IGameEvent, game: GridGame | undefined) {
+  private handlePlay(
+    socket: Socket,
+    server: Server,
+    data: IGameEvent,
+    game: GridGame | undefined,
+  ) {
     if (!game) {
-      socket.emit('game', { eventType: data.eventType, error: 'Partie introuvable' });
+      socket.emit('game', {
+        eventType: data.eventType,
+        error: 'Partie introuvable',
+      });
       return;
     }
     const result = game.play(socket['user'].pseudo, data);
-    server.to(data.roomName).emit('game', { eventType: data.eventType, result });
+    server
+      .to(data.roomName)
+      .emit('game', { eventType: data.eventType, result });
   }
 
-  private handleReload(socket: Socket, server: Server, data: IGameEvent, game: GridGame | undefined) {
+  private handleReload(
+    socket: Socket,
+    server: Server,
+    data: IGameEvent,
+    game: GridGame | undefined,
+  ) {
     if (!game) {
-      socket.emit('game', { eventType: data.eventType, error: 'Partie introuvable' });
+      socket.emit('game', {
+        eventType: data.eventType,
+        error: 'Partie introuvable',
+      });
       return;
     }
     const reloadResult = game.requestReload(socket['user'].pseudo);
@@ -100,11 +129,21 @@ export class GameEventService {
     if (reloadResult.ready) {
       const gameClass = this.GAMES_REGISTRY[data.roomName.split('_')[0]];
       if (!gameClass) {
-        throw new Error(`Game ${data.roomName.split('_')[0]} not found in game registry`);
+        throw new Error(
+          `Game ${data.roomName.split('_')[0]} not found in game registry`,
+        );
       }
-      this.games.set(data.roomName, new gameClass(game.getPlayer1(), game.getPlayer2()));
-      result = { ...reloadResult, turn: this.games.get(data.roomName).getTurn() };
+      this.games.set(
+        data.roomName,
+        new gameClass(game.getPlayer1(), game.getPlayer2()),
+      );
+      result = {
+        ...reloadResult,
+        turn: this.games.get(data.roomName).getTurn(),
+      };
     }
-    server.to(data.roomName).emit('game', { eventType: data.eventType, result });
+    server
+      .to(data.roomName)
+      .emit('game', { eventType: data.eventType, result });
   }
 }
