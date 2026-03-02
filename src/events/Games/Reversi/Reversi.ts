@@ -1,12 +1,13 @@
 import { GridGame } from '../commons/GridGame';
 import type { IGridGameResult } from '../commons/GridGame';
 
-// Colonne d'une cellule encodée sous forme numérique (ex: 34 → col 3)
+// Colonne d'une cellule encodée sous forme numérique (ex: c34 → 34, col = dizaine = 3)
 const colOf = (n: number) => Math.floor(n / 10);
 
-// Delta de colonne attendu pour un vecteur donné (horizontal: ±1, vertical: 0)
+// Delta de colonne attendu pour un vecteur donné
+// Format cCOLROW : col = dizaine → vecteur horizontal = ±10, vertical = ±1
 const expectedColDelta = (v: number) =>
-  Math.sign(v) * (Math.abs(v) === 10 ? 0 : 1);
+  Math.sign(v) * (Math.abs(v) === 1 ? 0 : 1);
 
 export class ReversiGame extends GridGame {
   constructor(player1: string, player2: string) {
@@ -165,6 +166,23 @@ export class ReversiGame extends GridGame {
       }
     }
     return false;
+  }
+
+  /**
+   * Surcharge getCells() pour retourner les couleurs (white/black) au lieu des pseudos,
+   * afin que le frontend puisse afficher les pions correctement dès le chargement.
+   */
+  public getCells(): Record<string, string | false> {
+    const result: Record<string, string | false> = {};
+    for (const [cell, value] of Object.entries(this.cells)) {
+      if (value === false) {
+        result[cell] = false;
+      } else {
+        const key = value === this.player1 ? 'player1' : 'player2';
+        result[cell] = this.token.get(key) ?? false;
+      }
+    }
+    return result;
   }
 
   private computeResult(): IGridGameResult {
