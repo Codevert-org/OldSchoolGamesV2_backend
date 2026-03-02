@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Put,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -16,11 +17,25 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { avatarMulterConfig } from '../commons/multer.config';
 import { UpdateMeDTO } from './DTO/updateMe.dto';
 import { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('users')
 @ApiTags('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
+
+  @Get('check-pseudo')
+  @ApiOkResponse()
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  async checkPseudo(
+    @Query('pseudo') pseudo: string,
+  ): Promise<{ available: boolean }> {
+    if (!pseudo || pseudo.length < 2) {
+      return { available: false };
+    }
+    const available = await this.userService.isPseudoAvailable(pseudo);
+    return { available };
+  }
 
   @Get('me')
   @ApiOkResponse()

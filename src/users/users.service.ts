@@ -9,6 +9,14 @@ import { SALT_ROUNDS } from '../commons/utils/env';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async isPseudoAvailable(pseudo: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { pseudo },
+      select: { id: true },
+    });
+    return user === null;
+  }
+
   async getOne(id: number) {
     try {
       const user = await this.prisma.user.findUniqueOrThrow({

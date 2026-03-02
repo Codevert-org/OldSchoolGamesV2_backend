@@ -9,7 +9,7 @@ const logger = new Logger('FileUpload');
 export const editAvatarFileName = (
   req: Request,
   file: Express.Multer.File,
-  callback: (error: Error | null, filename: string | false) => void,
+  callback: (error: Error | null, filename: string) => void,
 ) => {
   // handle the case where the user is updating their avatar
   if (req.route.stack[0].method === 'put' && req.route.path === '/users/me') {
@@ -19,14 +19,14 @@ export const editAvatarFileName = (
       if (!userId) {
         return callback(
           new BadRequestException('User ID not found in request'),
-          false,
+          '',
         );
       }
       const fileExtName = extname(file.originalname);
       return callback(null, `user_${userId}_${Date.now()}${fileExtName}`);
     } catch (error) {
       logger.error('Error processing avatar filename', error);
-      return callback(error, false);
+      return callback(error as Error, '');
     }
   }
   // handle the case where the user is registering

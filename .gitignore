@@ -39,3 +39,4 @@ lerna-debug.log*
 generated/prisma
 _envs
 .claude
+todo.txt

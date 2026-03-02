@@ -198,3 +198,57 @@
 [ ] Notifications WebSocket pour annulation d'invitation
 [ ] Gestion des salles de jeu des utilisateurs déconnectés
 [ ] Refactorisation centralisée de gestion d'erreurs
+
+=== UI/UX FORMULAIRES ===
+
+[ ] Audit des formulaires existants
+    - LoginForm.tsx : login + register (2 formulaires distincts, même composant)
+    - ProfileForm / UpdateMe : à identifier
+
+[ ] Amélioration UX sans lib externe (à évaluer selon complexité réelle)
+    - Validation en temps réel (onBlur ou onChange)
+    - Messages d'erreur inline sous chaque champ
+    - États de chargement (submit en cours → bouton disabled + spinner)
+    - Accessibilité : aria-invalid, aria-describedby sur les champs en erreur
+
+=== TESTS UNITAIRES ===
+
+[ ] Stratégie générale
+    - Progression par petites foulées, un module à la fois
+    - Objectif final : quality gate sur couverture de code (seuil à définir)
+    - Backend : Jest (déjà configuré NestJS)
+    - Frontend : Vitest (natif Vite) + React Testing Library
+    - CI/CD : Jenkins + SonarQube déjà en place — intégration à définir lors de la phase tests
+
+[ ] Backend — ordre suggéré
+    - auth.service.ts : register, login (hash, JWT, avatarMessage)
+    - users.service.ts : isPseudoAvailable, getOne, updateMe
+    - Logique jeux : GridGame (abstract), MorpionGame, Puissance4Game, ReversiGame
+      → Cas nominaux, coups invalides, victoire, nul, pass (Reversi), wrap-around
+
+[ ] Frontend — ordre suggéré
+    - Composants unitaires : FormLine, Button (rendu, props, disabled)
+    - LoginForm : validation pseudo debounce, règles password, submit bloqué
+    - Jeux : logique de rendu cellules, animation flip (mock SVG)
+
+=== SONARQUBE / CI-CD ===
+
+[ ] Créer un projet OldSchoolGames V2 sur le serveur SonarQube
+    - Générer un token API pour le projet
+
+[ ] Définir le Quality Profile
+    - Choisir ou créer un profil TypeScript/JavaScript adapté
+    - Définir les règles actives (ou partir du profil Sonar Way par défaut)
+
+[ ] Définir le Quality Gate
+    - Fixer les seuils : couverture de code, duplications, bugs, code smells
+    - Récupérer les conditions via l'API : GET /api/qualitygates/show
+
+[ ] Brancher SonarQube dans Jenkins
+    - Configurer sonar-scanner dans le pipeline (sonar-project.properties ou via plugin)
+    - Activer le Quality Gate webhook : bloquer le build si gate échoue
+    - Brancher les rapports de couverture Jest/Vitest vers SonarQube
+
+[ ] Récupérer les règles actives pour guider l'écriture des tests
+    - GET /api/rules/search?activation=true&qprofile=<profileKey>
+    - Identifier les règles de couverture minimale à respecter

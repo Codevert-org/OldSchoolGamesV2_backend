@@ -30,6 +30,7 @@
     "@nestjs/platform-express": "^11.1.5",
     "@nestjs/platform-socket.io": "^11.1.5",
     "@nestjs/swagger": "^11.2.0",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.5",
     "@prisma/client": "^6.14.0",
     "bcrypt": "^6.0.0",
