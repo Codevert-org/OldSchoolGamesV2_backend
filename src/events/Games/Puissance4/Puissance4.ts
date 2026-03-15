@@ -1,5 +1,5 @@
 import { GridGame } from '../commons/GridGame';
-import type { IGridGameResult } from '../commons/GridGame';
+import type { IGridGameResult, IGamePlayer } from '../commons/GridGame';
 
 // Colonne d'une cellule encodée sous forme numérique (ex: 34 → col 3)
 const colOf = (n: number) => Math.floor(n / 10);
@@ -9,7 +9,7 @@ const expectedColDelta = (v: number) =>
   Math.sign(v) * (Math.abs(v) === 10 ? 0 : 1);
 
 export class Puissance4Game extends GridGame {
-  constructor(player1: string, player2: string) {
+  constructor(player1: IGamePlayer, player2: IGamePlayer) {
     super(player1, player2);
   }
   private readonly token = new Map([
@@ -60,7 +60,7 @@ export class Puissance4Game extends GridGame {
     }
 
     const tokenToReturn = this.token.get(
-      player === this.player1 ? 'player1' : 'player2',
+      player === this.player1.pseudo ? 'player1' : 'player2',
     );
     this.cells[cellName] = player;
 

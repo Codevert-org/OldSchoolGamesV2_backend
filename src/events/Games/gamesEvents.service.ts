@@ -3,7 +3,8 @@ import { Server, Socket } from 'socket.io';
 import { MorpionGame } from './Morpion/Morpion';
 import { Puissance4Game } from './Puissance4/Puissance4';
 import { ReversiGame } from './Reversi/Reversi';
-import { GridGame } from './commons/GridGame';
+import { GridGame, IGridGameResult, IGamePlayer } from './commons/GridGame';
+import { PrismaService } from '../../prisma/prisma.service';
 
 interface IGameEvent {
   roomName: string;
@@ -13,12 +14,13 @@ interface IGameEvent {
 
 @Injectable()
 export class GameEventService {
+  constructor(private readonly prisma: PrismaService) {}
   private readonly logger = new Logger('GamesEventService');
   private readonly games: Map<string, GridGame> = new Map();
 
   private readonly GAMES_REGISTRY: Record<
     string,
-    new (player1: string, player2: string) => GridGame
+    new (player1: IGamePlayer, player2: IGamePlayer) => GridGame
   > = {
     morpion: MorpionGame,
     puissance4: Puissance4Game,
@@ -36,10 +38,10 @@ export class GameEventService {
     if (room.length < 2) {
       throw new Error(`Room ${roomName} does not have 2 players`);
     }
-    const [player1, player2] = room.map((socket) => socket['user'].pseudo);
-    this.games.set(roomName, new gameClass(player1, player2));
+    const [p1, p2] = room.map((socket) => socket['user']);
+    this.games.set(roomName, new gameClass(p1, p2));
     this.logger.log(
-      `Game ${roomName} created between players ${player1} and ${player2}`,
+      `Game ${roomName} created between players ${p1.pseudo} and ${p2.pseudo}`,
     );
   }
 
@@ -83,6 +85,7 @@ export class GameEventService {
   }
 
   private async handleLeave(socket: Socket, server: Server, data: IGameEvent) {
+    const game = this.games.get(data.roomName);
     this.games.delete(data.roomName);
     this.logger.log(`Game ${data.roomName} closed by ${socket['user'].pseudo}`);
     const opponentSocket = (await server.in(data.roomName).fetchSockets()).find(
@@ -90,9 +93,20 @@ export class GameEventService {
     );
     server.socketsLeave(data.roomName);
     opponentSocket?.emit('game', { eventType: 'leave' });
+    if (game && !game.isLocked()) {
+      const gameName = data.roomName.split('_')[0];
+      const leaverId = socket['user'].id;
+      const winnerId =
+        game.getPlayer1Id() === leaverId
+          ? game.getPlayer2Id()
+          : game.getPlayer1Id();
+      await this.prisma.gameMatch.create({
+        data: { game: gameName, winnerId, loserId: leaverId },
+      });
+    }
   }
 
-  private handlePlay(
+  private async handlePlay(
     socket: Socket,
     server: Server,
     data: IGameEvent,
@@ -109,6 +123,31 @@ export class GameEventService {
     server
       .to(data.roomName)
       .emit('game', { eventType: data.eventType, result });
+    if (result?.result && result.result !== false) {
+      await this.saveMatch(data.roomName, game, result.result);
+    }
+  }
+
+  private async saveMatch(
+    roomName: string,
+    game: GridGame,
+    result: IGridGameResult,
+  ) {
+    const gameName = roomName.split('_')[0];
+    const player1Id = game.getPlayer1Id();
+    const player2Id = game.getPlayer2Id();
+    const player1Pseudo = game.getPlayer1().pseudo;
+    if (result.draw) {
+      await this.prisma.gameMatch.create({
+        data: { game: gameName, draw: true },
+      });
+      return;
+    }
+    const winnerId = result.winner === player1Pseudo ? player1Id : player2Id;
+    const loserId = result.winner === player1Pseudo ? player2Id : player1Id;
+    await this.prisma.gameMatch.create({
+      data: { game: gameName, winnerId, loserId },
+    });
   }
 
   private handleReload(

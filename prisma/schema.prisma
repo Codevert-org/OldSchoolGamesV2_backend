@@ -16,6 +16,8 @@ model User {
   password  String?
   invitationsFrom Invitation[] @relation("invitationsFrom")
   invitationsTo Invitation[] @relation("invitationsTo")
+  gamesWon        GameMatch[]  @relation("gameMatchWinner")
+  gamesLost       GameMatch[]  @relation("gameMatchLoser")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -27,4 +29,15 @@ model Invitation {
   toUser User @relation("invitationsTo", fields: [toId], references: [id], onDelete: Cascade)
   toId Int
   game String
+}
+
+model GameMatch {
+  id       Int      @id @default(autoincrement())
+  game     String
+  date     DateTime @default(now())
+  draw     Boolean  @default(false)
+  winner   User?    @relation("gameMatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  winnerId Int?
+  loser    User?    @relation("gameMatchLoser", fields: [loserId], references: [id], onDelete: SetNull)
+  loserId  Int?
 }
