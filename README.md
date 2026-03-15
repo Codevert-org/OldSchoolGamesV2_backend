@@ -23,6 +23,8 @@ OldSchoolGames V2 Backend est une API pour une plateforme de jeux classiques en 
 - ✅ **Jeu Morpion** - Grille 3×3, détection victoire/nul
 - ✅ **Jeu Puissance4** - Grille 7×6, gravité, anti wrap-around
 - ✅ **Jeu Reversi** - Grille 8×8, retournement de pions, cas pass, fin de partie
+- ✅ **Statistiques de parties** - Agrégation par période (semaine/mois/année) et par jeu
+- ✅ **Logs persistants** - JSON avec rotation sur 2 mois glissants et archivage `.tar.gz`
 - ✅ **CI/CD** - Pipeline Jenkins automatisé
 
 ---
@@ -38,6 +40,7 @@ OldSchoolGames V2 Backend est une API pour une plateforme de jeux classiques en 
 | **Validation** | Class Validator, Class Transformer |
 | **Upload** | Multer (avatars → `./assets/user_avatars`) |
 | **Rate limiting** | @nestjs/throttler |
+| **Logging** | NestJS Logger + FileLogger custom (JSON, rotation, archivage tar.gz) |
 | **Documentation** | Swagger/OpenAPI (`/api`) |
 | **Tests** | Jest |
 | **DevOps** | Docker, Jenkins |
