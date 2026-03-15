@@ -4,14 +4,19 @@ export type IGridGameResult = {
   cells: string[] | false;
 };
 
+export type IGamePlayer = {
+  pseudo: string;
+  id: number;
+};
+
 export abstract class GridGame {
-  constructor(player1: string, player2: string) {
+  constructor(player1: IGamePlayer, player2: IGamePlayer) {
     this.player1 = player1;
     this.player2 = player2;
-    this.turn = player1;
+    this.turn = player1.pseudo;
   }
-  protected player1: string;
-  protected player2: string;
+  protected player1: IGamePlayer;
+  protected player2: IGamePlayer;
   protected turn: string;
   protected cells: Record<string, string | false>;
   protected locked: boolean;
@@ -29,7 +34,7 @@ export abstract class GridGame {
         result: false,
       };
     }
-    if (player !== this.player1 && player !== this.player2) {
+    if (player !== this.player1.pseudo && player !== this.player2.pseudo) {
       return {
         error: 'Invalid player',
         message: 'joueur invalide',
@@ -63,14 +68,14 @@ export abstract class GridGame {
     return { success: true, result: false };
   }
   protected switchTurn() {
-    this.turn = this.turn === this.player1 ? this.player2 : this.player1;
+    this.turn = this.turn === this.player1.pseudo ? this.player2.pseudo : this.player1.pseudo;
   }
   protected endTurn(
     result: IGridGameResult | false,
     tokenToReturn: string,
     cell: string,
   ) {
-    this.turn = this.turn === this.player1 ? this.player2 : this.player1;
+    this.turn = this.turn === this.player1.pseudo ? this.player2.pseudo : this.player1.pseudo;
     this.locked = result !== false;
 
     // Retourner la réponse
@@ -86,20 +91,29 @@ export abstract class GridGame {
   public getTurn() {
     return this.turn;
   }
+  public isLocked() {
+    return this.locked;
+  }
   public getPlayer1() {
     return this.player1;
   }
   public getPlayer2() {
     return this.player2;
   }
+  public getPlayer1Id() {
+    return this.player1.id;
+  }
+  public getPlayer2Id() {
+    return this.player2.id;
+  }
   public getOpponent(user: string) {
-    return this.player1 == user ? this.player2 : this.player1;
+    return this.player1.pseudo === user ? this.player2.pseudo : this.player1.pseudo;
   }
   public getCells() {
     return this.cells;
   }
   public requestReload(player: string) {
-    if (player !== this.player1 && player !== this.player2) {
+    if (player !== this.player1.pseudo && player !== this.player2.pseudo) {
       return {
         success: false,
         error: 'invalid player',

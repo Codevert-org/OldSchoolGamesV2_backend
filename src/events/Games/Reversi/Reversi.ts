@@ -1,5 +1,5 @@
 import { GridGame } from '../commons/GridGame';
-import type { IGridGameResult } from '../commons/GridGame';
+import type { IGridGameResult, IGamePlayer } from '../commons/GridGame';
 
 // Colonne d'une cellule encodée sous forme numérique (ex: c34 → 34, col = dizaine = 3)
 const colOf = (n: number) => Math.floor(n / 10);
@@ -10,13 +10,13 @@ const expectedColDelta = (v: number) =>
   Math.sign(v) * (Math.abs(v) === 1 ? 0 : 1);
 
 export class ReversiGame extends GridGame {
-  constructor(player1: string, player2: string) {
+  constructor(player1: IGamePlayer, player2: IGamePlayer) {
     super(player1, player2);
     // Position de départ : 4 pions au centre
-    this.cells['c44'] = player1;
-    this.cells['c55'] = player1;
-    this.cells['c45'] = player2;
-    this.cells['c54'] = player2;
+    this.cells['c44'] = player1.pseudo;
+    this.cells['c55'] = player1.pseudo;
+    this.cells['c45'] = player2.pseudo;
+    this.cells['c54'] = player2.pseudo;
   }
   private readonly token = new Map([
     ['player1', 'white'],
@@ -60,11 +60,11 @@ export class ReversiGame extends GridGame {
     }
 
     const tokenToReturn = this.token.get(
-      player === this.player1 ? 'player1' : 'player2',
+      player === this.player1.pseudo ? 'player1' : 'player2',
     );
 
     // Déterminer le prochain tour
-    const opponent = player === this.player1 ? this.player2 : this.player1;
+    const opponent = player === this.player1.pseudo ? this.player2.pseudo : this.player1.pseudo;
     const opponentCanPlay = this.hasValidMove(opponent);
 
     if (!opponentCanPlay) {
@@ -178,7 +178,7 @@ export class ReversiGame extends GridGame {
       if (value === false) {
         result[cell] = false;
       } else {
-        const key = value === this.player1 ? 'player1' : 'player2';
+        const key = value === this.player1.pseudo ? 'player1' : 'player2';
         result[cell] = this.token.get(key) ?? false;
       }
     }
@@ -189,15 +189,15 @@ export class ReversiGame extends GridGame {
     let p1count = 0;
     let p2count = 0;
     for (const cell in this.cells) {
-      if (this.cells[cell] === this.player1) p1count++;
-      if (this.cells[cell] === this.player2) p2count++;
+      if (this.cells[cell] === this.player1.pseudo) p1count++;
+      if (this.cells[cell] === this.player2.pseudo) p2count++;
     }
     if (p1count === p2count) {
       return { draw: true, winner: false, cells: false };
     }
     return {
       draw: false,
-      winner: p1count > p2count ? this.player1 : this.player2,
+      winner: p1count > p2count ? this.player1.pseudo : this.player2.pseudo,
       cells: false,
     };
   }

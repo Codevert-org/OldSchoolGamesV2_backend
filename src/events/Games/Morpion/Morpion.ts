@@ -1,8 +1,8 @@
 import { GridGame } from '../commons/GridGame';
-import type { IGridGameResult } from '../commons/GridGame';
+import type { IGridGameResult, IGamePlayer } from '../commons/GridGame';
 
 export class MorpionGame extends GridGame {
-  constructor(player1: string, player2: string) {
+  constructor(player1: IGamePlayer, player2: IGamePlayer) {
     super(player1, player2);
   }
   private readonly token = new Map([
@@ -28,7 +28,7 @@ export class MorpionGame extends GridGame {
     }
 
     const tokenToReturn = this.token.get(
-      player === this.player1 ? 'player1' : 'player2',
+      player === this.player1.pseudo ? 'player1' : 'player2',
     );
     this.cells[cell] = player;
     // Tester victoire

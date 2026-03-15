@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
+import { GetStatsDto } from './DTO/getStats.dto';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
@@ -43,6 +44,17 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getMe(@Req() req: Request & { user: { id: number } }) {
     return this.userService.getOne(req.user.id);
+  }
+
+  @Get('me/stats')
+  @ApiOkResponse()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  getStats(
+    @Req() req: Request & { user: { id: number } },
+    @Query(new ValidationPipe({ whitelist: true })) query: GetStatsDto,
+  ) {
+    return this.userService.getStats(req.user.id, query);
   }
 
   @Put('me')
