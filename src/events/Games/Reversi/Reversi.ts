@@ -64,7 +64,10 @@ export class ReversiGame extends GridGame {
     );
 
     // Déterminer le prochain tour
-    const opponent = player === this.player1.pseudo ? this.player2.pseudo : this.player1.pseudo;
+    const opponent =
+      player === this.player1.pseudo
+        ? this.player2.pseudo
+        : this.player1.pseudo;
     const opponentCanPlay = this.hasValidMove(opponent);
 
     if (!opponentCanPlay) {

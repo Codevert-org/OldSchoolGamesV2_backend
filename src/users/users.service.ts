@@ -107,7 +107,11 @@ export class UsersService {
     let startDate: Date;
     if (period === 'week') {
       const day = now.getDay() === 0 ? 6 : now.getDay() - 1;
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+      startDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - day,
+      );
     } else if (period === 'month') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     } else {
@@ -126,7 +130,13 @@ export class UsersService {
       const losses = list.filter((m) => m.loserId === userId).length;
       const draws = list.filter((m) => m.draw).length;
       const total = wins + losses + draws;
-      return { total, wins, losses, draws, ratio: total > 0 ? Math.round((wins / total) * 100) : 0 };
+      return {
+        total,
+        wins,
+        losses,
+        draws,
+        ratio: total > 0 ? Math.round((wins / total) * 100) : 0,
+      };
     };
 
     const games = ['morpion', 'puissance4', 'reversi'];

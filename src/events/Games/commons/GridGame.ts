@@ -68,14 +68,20 @@ export abstract class GridGame {
     return { success: true, result: false };
   }
   protected switchTurn() {
-    this.turn = this.turn === this.player1.pseudo ? this.player2.pseudo : this.player1.pseudo;
+    this.turn =
+      this.turn === this.player1.pseudo
+        ? this.player2.pseudo
+        : this.player1.pseudo;
   }
   protected endTurn(
     result: IGridGameResult | false,
     tokenToReturn: string,
     cell: string,
   ) {
-    this.turn = this.turn === this.player1.pseudo ? this.player2.pseudo : this.player1.pseudo;
+    this.turn =
+      this.turn === this.player1.pseudo
+        ? this.player2.pseudo
+        : this.player1.pseudo;
     this.locked = result !== false;
 
     // Retourner la réponse
@@ -107,7 +113,9 @@ export abstract class GridGame {
     return this.player2.id;
   }
   public getOpponent(user: string) {
-    return this.player1.pseudo === user ? this.player2.pseudo : this.player1.pseudo;
+    return this.player1.pseudo === user
+      ? this.player2.pseudo
+      : this.player1.pseudo;
   }
   public getCells() {
     return this.cells;

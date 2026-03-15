@@ -96,7 +96,10 @@ export class GameEventService {
     if (game && !game.isLocked()) {
       const gameName = data.roomName.split('_')[0];
       const leaverId = socket['user'].id;
-      const winnerId = game.getPlayer1Id() === leaverId ? game.getPlayer2Id() : game.getPlayer1Id();
+      const winnerId =
+        game.getPlayer1Id() === leaverId
+          ? game.getPlayer2Id()
+          : game.getPlayer1Id();
       await this.prisma.gameMatch.create({
         data: { game: gameName, winnerId, loserId: leaverId },
       });
@@ -125,7 +128,11 @@ export class GameEventService {
     }
   }
 
-  private async saveMatch(roomName: string, game: GridGame, result: IGridGameResult) {
+  private async saveMatch(
+    roomName: string,
+    game: GridGame,
+    result: IGridGameResult,
+  ) {
     const gameName = roomName.split('_')[0];
     const player1Id = game.getPlayer1Id();
     const player2Id = game.getPlayer2Id();
