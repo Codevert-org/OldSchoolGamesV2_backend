@@ -12,7 +12,7 @@ Built with **NestJS** • **PostgreSQL** • **Socket.IO** • **JWT**
 
 ## 📋 À propos
 
-OldSchoolGames V2 Backend est une API moderne et performante pour une plateforme de jeux classiques en ligne. Elle gère l'authentification des utilisateurs, les profils, les invitations entre joueurs et l'orchestration des jeux en temps réel.
+OldSchoolGames V2 Backend est une API pour une plateforme de jeux classiques en ligne. Elle gère l'authentification des utilisateurs, les profils, les invitations entre joueurs et l'orchestration des jeux en temps réel.
 
 ### Fonctionnalités principales
 
@@ -20,9 +20,9 @@ OldSchoolGames V2 Backend est une API moderne et performante pour une plateforme
 - ✅ **Gestion des profils** - Avec support des avatars personnalisés
 - ✅ **Système d'invitations** - Entre joueurs pour démarrer des parties
 - ✅ **Communication temps réel** - Via WebSocket (Socket.IO)
-- ✅ **Jeu Morpion** - Implémentation complète du Tic-Tac-Toe
-- ✅ **API REST documentée** - Swagger/OpenAPI intégré
-- ✅ **Tests unitaires** - Avec Jest et couverture de code
+- ✅ **Jeu Morpion** - Grille 3×3, détection victoire/nul
+- ✅ **Jeu Puissance4** - Grille 7×6, gravité, anti wrap-around
+- ✅ **Jeu Reversi** - Grille 8×8, retournement de pions, cas pass, fin de partie
 - ✅ **CI/CD** - Pipeline Jenkins automatisé
 
 ---
@@ -32,12 +32,14 @@ OldSchoolGames V2 Backend est une API moderne et performante pour une plateforme
 | Catégorie | Technologies |
 |-----------|--------------|
 | **Framework** | NestJS 11, Express, TypeScript |
-| **Base de données** | PostgreSQL, Prisma ORM |
-| **Temps réel** | Socket.IO, WebSockets |
+| **Base de données** | PostgreSQL, Prisma ORM v6 |
+| **Temps réel** | Socket.IO (namespace `/events`) |
 | **Authentification** | JWT, Passport, Bcrypt |
 | **Validation** | Class Validator, Class Transformer |
-| **Tests** | Jest, Supertest |
-| **Documentation** | Swagger/OpenAPI |
+| **Upload** | Multer (avatars → `./assets/user_avatars`) |
+| **Rate limiting** | @nestjs/throttler |
+| **Documentation** | Swagger/OpenAPI (`/api`) |
+| **Tests** | Jest |
 | **DevOps** | Docker, Jenkins |
 
 ---
@@ -46,29 +48,65 @@ OldSchoolGames V2 Backend est une API moderne et performante pour une plateforme
 
 ```
 src/
-├── auth/                    # Module d'authentification
-│   ├── auth.controller.ts   # Routes: /auth/register, /auth/login
-│   ├── auth.service.ts      # Logique d'authentification
-│   ├── guard/               # Guards JWT
-│   └── strategy/            # Stratégies Passport
+├── auth/                        # Module d'authentification
+│   ├── auth.controller.ts       # Routes: /auth/register, /auth/login
+│   ├── auth.service.ts          # Logique d'authentification
+│   ├── DTO/                     # LoginDTO
+│   ├── guard/                   # Guards JWT
+│   └── strategy/                # Stratégies Passport
 │
-├── users/                   # Module utilisateurs
-│   ├── users.controller.ts  # Routes: /users/me
-│   └── users.service.ts     # Gestion des profils
+├── users/                       # Module utilisateurs
+│   ├── users.controller.ts      # Routes: /users/me
+│   ├── users.service.ts         # Gestion des profils
+│   └── DTO/                     # UpdateMeDTO
 │
-├── events/                  # Module WebSocket & Jeux
-│   ├── events.gateway.ts    # Gateway WebSocket (/events)
-│   ├── Games/               # Logique des jeux
-│   │   └── Morpion/        # Implémentation du Tic-Tac-Toe
-│   ├── invitations/         # Gestion des invitations
-│   └── users/               # Gestion des connexions
+├── events/                      # Module WebSocket & Jeux
+│   ├── events.gateway.ts        # Gateway WebSocket (/events)
+│   ├── Games/
+│   │   ├── commons/
+│   │   │   └── GridGame.ts      # Classe abstraite de base (héritage)
+│   │   ├── Morpion/
+│   │   │   └── Morpion.ts       # Logique Morpion (3×3)
+│   │   ├── Puissance4/
+│   │   │   └── Puissance4.ts    # Logique Puissance4 (7×6)
+│   │   ├── Reversi/
+│   │   │   └── Reversi.ts       # Logique Reversi (8×8)
+│   │   └── gamesEvents.service.ts  # Orchestration + GAMES_REGISTRY
+│   ├── invitations/             # Gestion des invitations
+│   └── users/                   # Gestion des connexions
 │
-├── prisma/                  # Module base de données
-│   └── prisma.service.ts    # Wrapper PrismaClient
+├── prisma/                      # Module base de données
+│   └── prisma.service.ts
 │
-└── commons/                 # Utilitaires partagés
-    └── utils/               # Helpers de fichiers, casting
+└── commons/                     # Utilitaires partagés
+    ├── multer.config.ts         # Config Multer centralisée
+    └── utils/
+        └── env.ts               # SALT_ROUNDS
 ```
+
+---
+
+## 🎮 Design Patterns
+
+### Héritage — classe abstraite `GridGame`
+
+Tous les jeux héritent de `GridGame` (`src/events/Games/commons/GridGame.ts`) :
+- Encodage des cellules : `cCOLROW` — col = dizaine, row = unité (ex: `c44` = col 4, row 4)
+- Vecteurs : `[-11, -10, -9, +1, +11, +10, +9, -1]` — horizontal `±10`, vertical `±1`
+- Méthodes communes : `checkPlay()`, `switchTurn()`, `getCells()`, `requestReload()`
+- `play()` déclaré abstract — chaque jeu implémente sa propre logique
+
+### Registry pattern — `GAMES_REGISTRY`
+
+`gamesEvents.service.ts` maintient un registre typé des classes de jeu :
+```typescript
+const GAMES_REGISTRY = {
+  morpion: MorpionGame,
+  puissance4: Puissance4Game,
+  reversi: ReversiGame,
+};
+```
+Instanciation dynamique à la création d'une room, sans switch/case.
 
 ---
 
@@ -78,24 +116,17 @@ src/
 
 - Node.js 22+
 - PostgreSQL 12+
-- npm ou yarn
 
 ### Installation
 
 ```bash
-# Cloner le repository
-git clone <repository>
 cd OldSchoolGames/V2/Backend
-
-# Installer les dépendances
 npm install
-
-# Configurer les variables d'environnement
 cp .env.example .env
-# Éditer .env avec vos paramètres (DATABASE_URL, JWT_SECRET, etc.)
+# Éditer .env
 ```
 
-### Variables d'environnement requises
+### Variables d'environnement
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/oldschoolgames
@@ -107,52 +138,32 @@ PORT=3000
 ### Démarrage
 
 ```bash
-# Mode développement (avec reload automatique)
-npm run start:dev
-
-# Mode production
-npm run build
-npm run start:prod
-
-# Mode debug
-npm run start:debug
-
-# Initialization (build + migrations + start)
-npm run init
+npm run start:dev      # Développement (hot reload)
+npm run build          # Build production
+npm run start:prod     # Production
+npm run init           # Build + migrations + start
 ```
 
-### 🧪 Tests
+### Tests
 
 ```bash
-# Tests unitaires
-npm run test
-
-# Tests en mode watch
-npm run test:watch
-
-# Couverture de code
-npm run test:cov
-
-# Tests E2E
-npm run test:e2e
+npm run test           # Tests unitaires
+npm run test:watch     # Mode watch
+npm run test:cov       # Couverture de code
+npm run test:e2e       # Tests E2E
 ```
 
-### 🎨 Code Quality
+### Code Quality
 
 ```bash
-# Vérifier le linting
 npm run lint
-
-# Corriger automatiquement les erreurs
 npm run lint_fix
-
-# Formater le code
 npm run format
 ```
 
 ---
 
-## 📡 API REST Endpoints
+## 📡 API REST
 
 | Méthode | Route | Auth | Description |
 |---------|-------|------|-------------|
@@ -162,12 +173,7 @@ npm run format
 | `GET` | `/users/me` | ✅ JWT | Profil courant |
 | `PUT` | `/users/me` | ✅ JWT | Mise à jour profil |
 
-### Documentation interactive
-
-Une fois le serveur démarré, accédez à la documentation Swagger:
-```
-http://localhost:3000/api/docs
-```
+Documentation interactive : `http://localhost:3000/api`
 
 ---
 
@@ -175,43 +181,11 @@ http://localhost:3000/api/docs
 
 **Namespace:** `/events`
 
-### Événements disponibles
-
 | Événement | Direction | Description |
 |-----------|-----------|-------------|
-| `userList` | Send | Récupérer liste des utilisateurs connectés |
+| `userList` | Send | Liste des utilisateurs connectés |
 | `invitation` | Bi-directionnel | Invitation de jeu (create/accept/cancel) |
 | `game` | Bi-directionnel | Événements du jeu (play, reload, leave) |
-
-### Exemple de connexion WebSocket
-
-```javascript
-const socket = io('http://localhost:3000/events', {
-  auth: {
-    token: 'your_jwt_token'
-  }
-});
-
-socket.on('userList', (users) => {
-  console.log('Connected users:', users);
-});
-```
-
----
-
-## 🎮 Implémentation du Jeu Morpion
-
-Le jeu Morpion (Tic-Tac-Toe) est entièrement implémenté avec:
-
-- **Grille 3x3** - Cellules nommées c11 à c33
-- **Système de tour** - Alternance joueur1 (X) / joueur2 (O)
-- **Détection de victoire** - Horizontale, verticale, diagonale
-- **Gestion des égalités** - Détection automatique
-- **Confirmation de reload** - Nécessite accord des 2 joueurs
-
-**Fichiers relatifs:**
-- `src/events/Games/Morpion/Morpion.ts` - Logique du jeu
-- `src/events/Games/gamesEvents.service.ts` - Service d'orchestration
 
 ---
 
@@ -219,115 +193,46 @@ Le jeu Morpion (Tic-Tac-Toe) est entièrement implémenté avec:
 
 ### User
 ```
-- id: Int (PK)
-- pseudo: String
-- email: String
-- password: String (bcrypt)
-- avatarUrl: String
-- invitationsFrom: Invitation[]
-- invitationsTo: Invitation[]
-- createdAt: DateTime
-- updatedAt: DateTime
+id, pseudo, email, password (bcrypt), avatarUrl
+invitationsFrom[], invitationsTo[]
+createdAt, updatedAt
 ```
 
 ### Invitation
 ```
-- id: Int (PK)
-- fromUser: User
-- toUser: User
-- game: String
+id, fromUser, toUser, game
 ```
 
 ---
 
 ## 🐳 Docker
 
-### Build l'image Docker
-
 ```bash
 docker build -t oldschoolgames-backend:latest .
-```
-
-### Lancer le conteneur
-
-```bash
-docker run -p 3000:3000 \
-  --env-file .env \
-  oldschoolgames-backend:latest
+docker run -p 3000:3000 --env-file .env oldschoolgames-backend:latest
 ```
 
 ---
 
 ## 🔐 Sécurité
 
-- **Mots de passe** - Hashés avec bcrypt (SALT_ROUNDS configurable)
-- **Avatars** - Validés et nettoyés (sanitisation des noms)
-- **JWT** - Tokens avec expiration (1 jour par défaut)
-- **CORS** - Activé sur WebSocket pour tous les origins
-- **Input validation** - DTOs avec Class Validator
-- **SQL Injection** - Prévenue par Prisma ORM
+- Mots de passe hashés avec bcrypt (`SALT_ROUNDS` configurable)
+- Avatars validés et nettoyés (sanitize-filename)
+- JWT avec expiration (1 jour)
+- Input validation via DTOs + Class Validator
+- SQL injection prévenue par Prisma ORM
 
 ---
 
-## 📈 Performance & Scalabilité
+## 🚦 CI/CD
 
-- **ORM** - Prisma pour requêtes optimisées
-- **WebSocket** - Socket.IO pour communication bidirectionnelle
-- **Namespace** - Organisation des événements par namespace
-- **Room** - Isolation des parties par room WebSocket
-- **Stateless JWT** - Pas de session serveur requise
-
----
-
-## 🚦 CI/CD Pipeline
-
-Pipeline Jenkins automatisé pour:
-- ✅ Vérification ESLint
-- ✅ Build du projet
+Pipeline Jenkins :
+- ✅ ESLint
+- ✅ Build
 - ✅ Build & Push image Docker
 - ✅ Déploiement automatique (branche main)
 
-**Déploiement multi-environnements:**
-- Feature branches → Tagged with branch name
-- Branche dev → Dev environment
-- Branche main → Production (latest tag)
-
 ---
 
-## 📝 TODO & Améliorations
-
-Items de travail en cours:
-- [ ] Exporter la validation d'avatar vers un service dédié
-- [ ] Notifier les WebSocket lors d'une nouvelle inscription
-- [ ] Gestion complète des erreurs en cas d'utilisateur manquant
-- [ ] Validation complète lors de la création du jeu
-- [ ] Vérification de validité pour l'annulation d'invitation
-- [ ] Notifications WebSocket pour annulation d'invitation
-- [ ] Gestion des salles de jeu des utilisateurs déconnectés
-- [ ] Refactorisation centralisée de gestion d'erreurs
-
----
-
-## 🤝 Contribution
-
-Pour contribuer au projet:
-
-1. Créer une feature branch: `git checkout -b feature/description`
-2. Commit vos changements: `git commit -m "type: description"`
-3. Push vers la branche: `git push origin feature/description`
-4. Ouvrir une Pull Request
-
----
-
-## 📄 License
-
-Proprietary - Codevert Organization
-
----
-
-## 📧 Support
-
-Pour des questions ou rapports de bug, consultez la section Issues du repository.
-
-**Branche actuelle:** 14-gestion-morpion-game
-**Dernière mise à jour:** 2025-11-02
+**Branche actuelle:** 18-gestion-reversi
+**Dernière mise à jour:** 2026-03-15
