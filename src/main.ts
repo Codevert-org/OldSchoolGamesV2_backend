@@ -3,11 +3,13 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { FileLogger } from './commons/logger/file.logger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: { origin: true },
   });
+  app.useLogger(new FileLogger());
 
   app.useStaticAssets(join(__dirname, '..', 'assets'), {
     prefix: '/assets/',

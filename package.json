@@ -40,7 +40,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sanitize-filename": "^1.6.3",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "tar": "^7.5.11"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
@@ -53,6 +54,7 @@
     "@types/node": "^24.1.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.3",
+    "@types/tar": "^6.1.13",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "eslint": "^9.32.0",
