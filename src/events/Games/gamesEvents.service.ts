@@ -12,11 +12,14 @@ interface IGameEvent {
   eventType: 'play' | 'reload' | 'leave' | 'getGameData';
 }
 
+const GRACE_PERIOD_MS = 10_000;
+
 @Injectable()
 export class GameEventService {
   constructor(private readonly prisma: PrismaService) {}
   private readonly logger = new Logger('GamesEventService');
   private readonly games: Map<string, GridGame> = new Map();
+  private readonly disconnectTimers: Map<number, NodeJS.Timeout> = new Map();
 
   private readonly GAMES_REGISTRY: Record<
     string,
@@ -43,6 +46,82 @@ export class GameEventService {
     this.logger.log(
       `Game ${roomName} created between players ${p1.pseudo} and ${p2.pseudo}`,
     );
+  }
+
+  annulMatch(roomName: string): void {
+    this.games.delete(roomName);
+  }
+
+  getOpponentId(roomName: string, userId: number): number | undefined {
+    const game = this.games.get(roomName);
+    if (!game) return undefined;
+    return game.getPlayer1Id() === userId
+      ? game.getPlayer2Id()
+      : game.getPlayer1Id();
+  }
+
+  getGameData(
+    roomName: string,
+    pseudo: string,
+  ):
+    | { turn: string; opponent: string; cells: Record<string, string | false> }
+    | undefined {
+    const game = this.games.get(roomName);
+    if (!game) return undefined;
+    return {
+      turn: game.getTurn(),
+      opponent: game.getOpponent(pseudo),
+      cells: game.getCells(),
+    };
+  }
+
+  getActiveRoomForUser(userId: number): string | undefined {
+    for (const [roomName, game] of this.games) {
+      if (game.getPlayer1Id() === userId || game.getPlayer2Id() === userId) {
+        return roomName;
+      }
+    }
+    return undefined;
+  }
+
+  hasActiveTimer(userId: number): boolean {
+    return this.disconnectTimers.has(userId);
+  }
+
+  cancelGraceTimer(userId: number): void {
+    const timer = this.disconnectTimers.get(userId);
+    if (timer) {
+      clearTimeout(timer);
+      this.disconnectTimers.delete(userId);
+    }
+  }
+
+  startGraceTimer(userId: number, server: Server): void {
+    const roomName = this.getActiveRoomForUser(userId);
+    if (!roomName) return;
+    const game = this.games.get(roomName);
+    const timer = setTimeout(async () => {
+      if (!this.games.has(roomName)) {
+        this.disconnectTimers.delete(userId);
+        return;
+      }
+      this.disconnectTimers.delete(userId);
+      const gameName = roomName.split('_')[0];
+      const opponentId =
+        game.getPlayer1Id() === userId
+          ? game.getPlayer2Id()
+          : game.getPlayer1Id();
+      this.games.delete(roomName);
+      await this.prisma.gameMatch.create({
+        data: { game: gameName, winnerId: opponentId, loserId: userId },
+      });
+      server.to(roomName).emit('game', { eventType: 'leave' });
+      server.socketsLeave(roomName);
+      this.logger.log(
+        `Game ${roomName} — forfeit after grace period for userId ${userId}`,
+      );
+    }, GRACE_PERIOD_MS);
+    this.disconnectTimers.set(userId, timer);
   }
 
   async handleGameEvent(socket: Socket, server: Server, data: IGameEvent) {
@@ -86,6 +165,11 @@ export class GameEventService {
 
   private async handleLeave(socket: Socket, server: Server, data: IGameEvent) {
     const game = this.games.get(data.roomName);
+    // Cancel any active grace timer for either player before processing leave
+    if (game) {
+      this.cancelGraceTimer(game.getPlayer1Id());
+      this.cancelGraceTimer(game.getPlayer2Id());
+    }
     this.games.delete(data.roomName);
     this.logger.log(`Game ${data.roomName} closed by ${socket['user'].pseudo}`);
     const opponentSocket = (await server.in(data.roomName).fetchSockets()).find(
@@ -133,6 +217,9 @@ export class GameEventService {
     game: GridGame,
     result: IGridGameResult,
   ) {
+    // Cancel any active grace timer — game ended normally
+    this.cancelGraceTimer(game.getPlayer1Id());
+    this.cancelGraceTimer(game.getPlayer2Id());
     const gameName = roomName.split('_')[0];
     const player1Id = game.getPlayer1Id();
     const player2Id = game.getPlayer2Id();

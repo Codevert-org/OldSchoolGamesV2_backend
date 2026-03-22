@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../../users/users.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { GameEventService } from '../Games/gamesEvents.service';
 
 @Injectable()
 export class UserEventService {
@@ -13,6 +14,8 @@ export class UserEventService {
   private readonly logger = new Logger('UserEventService');
   @Inject(forwardRef(() => UsersService))
   private readonly usersService: UsersService;
+  @Inject(forwardRef(() => GameEventService))
+  private readonly gameEventService: GameEventService;
 
   async handleConnection(client: Socket, server: Server) {
     let token: string;
@@ -43,6 +46,25 @@ export class UserEventService {
       client['user'] = user;
       this.logger.log(`User connected : ${user.pseudo}`);
 
+      // Reconnection during grace period — restore game session
+      if (this.gameEventService.hasActiveTimer(user.id)) {
+        this.gameEventService.cancelGraceTimer(user.id);
+        const roomName = this.gameEventService.getActiveRoomForUser(user.id);
+        if (roomName) {
+          client.join(roomName);
+          const gameData = this.gameEventService.getGameData(
+            roomName,
+            user.pseudo,
+          );
+          if (gameData) {
+            client.emit('game', { eventType: 'getGameData', result: gameData });
+          }
+          this.logger.log(
+            `User ${user.pseudo} reconnected and rejoined room ${roomName}`,
+          );
+        }
+      }
+
       this.handleUserList(client, server);
 
       client.broadcast.emit('users', { eventType: 'connected', user });
@@ -56,7 +78,7 @@ export class UserEventService {
     }
   }
 
-  async handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket, server: Server) {
     if (client['user'] === undefined) {
       this.logger.log('Unknown user disconnected');
       return;
@@ -71,7 +93,24 @@ export class UserEventService {
       user: client['user'].id,
     });
     this.logger.log(`${client['user'].pseudo} disconnected`);
-    // TODO search for game rooms of this user and handle game
+    const userId = client['user'].id;
+    const roomName = this.gameEventService.getActiveRoomForUser(userId);
+    if (!roomName) return;
+    // Check for simultaneous disconnect — if opponent also has a timer, cancel both and annul match
+    const opponentId = this.gameEventService.getOpponentId(roomName, userId);
+    if (
+      opponentId !== undefined &&
+      this.gameEventService.hasActiveTimer(opponentId)
+    ) {
+      this.gameEventService.cancelGraceTimer(opponentId);
+      this.gameEventService.annulMatch(roomName);
+      this.logger.log(`Game ${roomName} annulled — simultaneous disconnect`);
+      return;
+    }
+    this.gameEventService.startGraceTimer(userId, server);
+    this.logger.log(
+      `Grace period started for userId ${userId} in room ${roomName}`,
+    );
   }
 
   async handleUserList(client: Socket, server: Server) {

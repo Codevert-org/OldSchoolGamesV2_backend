@@ -175,6 +175,7 @@ npm run format
 | `POST` | `/auth/login` | ❌ | Connexion |
 | `GET` | `/users/me` | ✅ JWT | Profil courant |
 | `PUT` | `/users/me` | ✅ JWT | Mise à jour profil |
+| `GET` | `/users/me/stats?period=week\|month\|year` | ✅ JWT | Statistiques de parties |
 
 Documentation interactive : `http://localhost:3000/api`
 
@@ -204,6 +205,11 @@ createdAt, updatedAt
 ### Invitation
 ```
 id, fromUser, toUser, game
+```
+
+### GameMatch
+```
+id, game, winnerId (nullable), loserId (nullable), draw (boolean), date
 ```
 
 ---
@@ -237,5 +243,4 @@ Pipeline Jenkins :
 
 ---
 
-**Branche actuelle:** 18-gestion-reversi
-**Dernière mise à jour:** 2026-03-15
+**Dernière mise à jour:** 2026-03-21
