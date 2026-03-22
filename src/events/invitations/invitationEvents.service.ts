@@ -115,6 +115,7 @@ export class InvitationEventService {
       client.emit('invitation', {
         eventType: 'error',
         message: "L'expéditeur de l'invitation n'est plus connecté",
+        invitationId,
       });
       return;
     }
@@ -125,6 +126,7 @@ export class InvitationEventService {
       client.emit('invitation', {
         eventType: 'error',
         message: "L'acceptation de l'invitation a échoué",
+        invitationId,
       });
       return;
     }
@@ -143,6 +145,7 @@ export class InvitationEventService {
       const error = {
         eventType: 'error',
         message: 'La création de la partie a échoué',
+        invitationId,
       };
       client.emit('invitation', error);
       senderSocket.emit('invitation', error);
