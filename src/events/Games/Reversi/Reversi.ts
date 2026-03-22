@@ -114,52 +114,72 @@ export class ReversiGame extends GridGame {
     const toFlip: string[] = [];
 
     for (const vector of this.vectors) {
-      const neighborNumber = cellNumber + vector;
-      const neighbor = `c${neighborNumber}`;
-
-      // Le voisin doit exister, appartenir à l'adversaire, sans wrap-around
-      if (
-        !this.cells.hasOwnProperty(neighbor) ||
-        this.cells[neighbor] === false ||
-        this.cells[neighbor] === player ||
-        colOf(neighborNumber) - colOf(cellNumber) !== expectedColDelta(vector)
-      ) {
-        continue;
-      }
-
-      // Suivre le vecteur : collecter les pions adverses jusqu'à trouver un pion allié
-      const candidates: string[] = [];
-      let step = 1;
-      let valid = false;
-
-      while (true) {
-        const nextNumber = cellNumber + vector * step;
-        const prevNumber = nextNumber - vector;
-        const next = `c${nextNumber}`;
-
-        if (
-          !this.cells.hasOwnProperty(next) ||
-          this.cells[next] === false ||
-          colOf(nextNumber) - colOf(prevNumber) !== expectedColDelta(vector)
-        ) {
-          break;
-        }
-
-        if (this.cells[next] === player) {
-          valid = true;
-          break;
-        }
-
-        candidates.push(next);
-        step++;
-      }
-
-      if (valid) {
+      const candidates = this.scanVector(cellNumber, vector, player);
+      if (candidates) {
         toFlip.push(...candidates);
       }
     }
 
     return toFlip;
+  }
+
+  /**
+   * Scanne un vecteur depuis cellNumber pour trouver les pions adverses à retourner.
+   * Retourne les cellules candidates si le vecteur est valide, null sinon.
+   */
+  private scanVector(
+    cellNumber: number,
+    vector: number,
+    player: string,
+  ): string[] | null {
+    const neighborNumber = cellNumber + vector;
+    const neighbor = `c${neighborNumber}`;
+
+    // Le voisin doit exister, appartenir à l'adversaire, sans wrap-around
+    if (
+      !this.cells.hasOwnProperty(neighbor) ||
+      this.cells[neighbor] === false ||
+      this.cells[neighbor] === player ||
+      colOf(neighborNumber) - colOf(cellNumber) !== expectedColDelta(vector)
+    ) {
+      return null;
+    }
+
+    return this.collectCandidates(cellNumber, vector, player);
+  }
+
+  /**
+   * Suit le vecteur depuis cellNumber et collecte les pions adverses
+   * jusqu'à trouver un pion allié (valide) ou une case vide/hors grille (invalide).
+   */
+  private collectCandidates(
+    cellNumber: number,
+    vector: number,
+    player: string,
+  ): string[] | null {
+    const candidates: string[] = [];
+    let step = 1;
+
+    while (true) {
+      const nextNumber = cellNumber + vector * step;
+      const prevNumber = nextNumber - vector;
+      const next = `c${nextNumber}`;
+
+      if (
+        !this.cells.hasOwnProperty(next) ||
+        this.cells[next] === false ||
+        colOf(nextNumber) - colOf(prevNumber) !== expectedColDelta(vector)
+      ) {
+        return null;
+      }
+
+      if (this.cells[next] === player) {
+        return candidates;
+      }
+
+      candidates.push(next);
+      step++;
+    }
   }
 
   private hasValidMove(player: string): boolean {

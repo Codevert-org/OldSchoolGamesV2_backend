@@ -5,7 +5,6 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
-  ValidationPipe,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -24,8 +23,7 @@ export class AuthController {
   @ApiOkResponse({ type: AuthResponseDTO })
   @UseInterceptors(FileInterceptor('avatar', avatarMulterConfig))
   register(
-    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    body: RegisterDTO,
+    @Body() body: RegisterDTO,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<AuthResponseDTO> {
     body.avatarUrl = file ? file.filename : undefined;
@@ -35,10 +33,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @ApiOkResponse({ type: AuthResponseDTO })
-  login(
-    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    body: LoginDTO,
-  ): Promise<AuthResponseDTO> {
+  login(@Body() body: LoginDTO): Promise<AuthResponseDTO> {
     return this.authService.login(body.email, body.password);
   }
 }

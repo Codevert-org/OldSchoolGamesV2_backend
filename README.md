@@ -229,6 +229,7 @@ docker run -p 3000:3000 --env-file .env oldschoolgames-backend:latest
 - Avatars validés et nettoyés (sanitize-filename)
 - JWT avec expiration (1 jour)
 - Input validation via DTOs + Class Validator (ValidationPipe global, whitelist + forbidNonWhitelisted)
+- Validation des payloads WebSocket via class-validator (rejection avec message d'erreur, sans déconnexion)
 - Messages d'erreur client en français, sans exposition d'informations techniques
 - SQL injection prévenue par Prisma ORM
 
