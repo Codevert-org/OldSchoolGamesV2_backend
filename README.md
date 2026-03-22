@@ -228,7 +228,8 @@ docker run -p 3000:3000 --env-file .env oldschoolgames-backend:latest
 - Mots de passe hashés avec bcrypt (`SALT_ROUNDS` configurable)
 - Avatars validés et nettoyés (sanitize-filename)
 - JWT avec expiration (1 jour)
-- Input validation via DTOs + Class Validator
+- Input validation via DTOs + Class Validator (ValidationPipe global, whitelist + forbidNonWhitelisted)
+- Validation des payloads WebSocket via class-validator (rejection avec message d'erreur, sans déconnexion)
 - SQL injection prévenue par Prisma ORM
 
 ---
@@ -243,4 +244,4 @@ Pipeline Jenkins :
 
 ---
 
-**Dernière mise à jour:** 2026-03-21
+**Dernière mise à jour:** 2026-03-22
