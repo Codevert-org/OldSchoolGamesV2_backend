@@ -8,7 +8,6 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ValidationPipe,
 } from '@nestjs/common';
 import { GetStatsDto } from './DTO/getStats.dto';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
@@ -52,7 +51,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getStats(
     @Req() req: Request & { user: { id: number } },
-    @Query(new ValidationPipe({ whitelist: true })) query: GetStatsDto,
+    @Query() query: GetStatsDto,
   ) {
     return this.userService.getStats(req.user.id, query);
   }
@@ -64,8 +63,7 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('avatar', avatarMulterConfig))
   updateMe(
     @Req() req: Request & { user: { id: number } },
-    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    body: UpdateMeDTO,
+    @Body() body: UpdateMeDTO,
     @UploadedFile() file: Express.Multer.File,
   ) {
     body.avatarUrl = file ? file.filename : undefined;
