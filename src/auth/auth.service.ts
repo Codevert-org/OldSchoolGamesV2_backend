@@ -46,14 +46,14 @@ export class AuthService {
       where: { pseudo },
     });
     if (pseudoInUse) {
-      throw new BadRequestException('pseudo already in use');
+      throw new BadRequestException('Ce pseudo est déjà utilisé');
     }
 
     const existingUser = await this.prisma.user.findFirst({
       where: { email },
     });
     if (existingUser) {
-      throw new BadRequestException('invalid email or password');
+      throw new BadRequestException('Identifiants incorrects');
     }
     const user = await this.prisma.user.create({
       data: { pseudo, email, password: hash },
@@ -98,7 +98,7 @@ export class AuthService {
     const isValidPassword =
       user && (await bcrypt.compare(password, user.password));
     if (!isValidPassword) {
-      throw new UnauthorizedException('invalid email or password');
+      throw new UnauthorizedException('Identifiants incorrects');
     }
     const responseUser = {
       id: user.id,

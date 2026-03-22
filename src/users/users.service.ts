@@ -30,7 +30,7 @@ export class UsersService {
       });
       return user;
     } catch {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Utilisateur introuvable');
     }
   }
 
@@ -48,12 +48,12 @@ export class UsersService {
     if (updateData.newPassword) {
       if (!updateData.oldPassword) {
         throw new BadRequestException(
-          'Old password is required for password change',
+          "L'ancien mot de passe est requis pour le modifier",
         );
       }
       if (updateData.newPassword !== updateData.newPasswordConfirm) {
         throw new BadRequestException(
-          'New password and its confirmation do not match',
+          'Le nouveau mot de passe et sa confirmation ne correspondent pas',
         );
       }
       const currentHash = (
@@ -63,7 +63,7 @@ export class UsersService {
         })
       ).password;
       if (!bcrypt.compareSync(updateData.oldPassword, currentHash)) {
-        throw new BadRequestException('Old password is incorrect');
+        throw new BadRequestException("L'ancien mot de passe est incorrect");
       }
       prismaData.password = await bcrypt.hash(
         updateData.newPassword,
@@ -98,7 +98,7 @@ export class UsersService {
         },
       });
     } catch {
-      throw new BadRequestException('Failed to update user');
+      throw new BadRequestException('La mise à jour a échoué');
     }
   }
 
