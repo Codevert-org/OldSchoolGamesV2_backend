@@ -42,7 +42,7 @@ OldSchoolGames V2 Backend est une API pour une plateforme de jeux classiques en 
 | **Rate limiting** | @nestjs/throttler |
 | **Logging** | NestJS Logger + FileLogger custom (JSON, rotation, archivage tar.gz) |
 | **Documentation** | Swagger/OpenAPI (`/api`) |
-| **Tests** | Jest |
+| **Tests** | Jest, jest-junit (JUnit XML pour Jenkins) |
 | **DevOps** | Docker, Jenkins |
 
 ---
@@ -154,7 +154,10 @@ npm run test           # Tests unitaires
 npm run test:watch     # Mode watch
 npm run test:cov       # Couverture de code
 npm run test:e2e       # Tests E2E
+npm run ci_tests       # Tests CI avec couverture + JUnit XML (test-results/test-results.xml)
 ```
+
+Couverture : `auth.service`, `users.service`, `GridGame` (base), `MorpionGame`, `Puissance4Game`, `ReversiGame` — 91 tests.
 
 ### Code Quality
 
