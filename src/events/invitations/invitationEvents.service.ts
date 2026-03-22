@@ -114,7 +114,8 @@ export class InvitationEventService {
     if (!senderSocket) {
       client.emit('invitation', {
         eventType: 'error',
-        message: 'The invitation sender is no longer connected',
+        message: "L'expéditeur de l'invitation n'est plus connecté",
+        invitationId,
       });
       return;
     }
@@ -124,7 +125,8 @@ export class InvitationEventService {
     if (!response) {
       client.emit('invitation', {
         eventType: 'error',
-        message: `Invitation ${invitationId} acceptation failed!`,
+        message: "L'acceptation de l'invitation a échoué",
+        invitationId,
       });
       return;
     }
@@ -142,7 +144,8 @@ export class InvitationEventService {
     } catch {
       const error = {
         eventType: 'error',
-        message: `Game creation for invitation ${invitationId} failed!`,
+        message: 'La création de la partie a échoué',
+        invitationId,
       };
       client.emit('invitation', error);
       senderSocket.emit('invitation', error);
@@ -294,7 +297,7 @@ export class InvitationEventService {
     client.emit('invitation', {
       eventType: 'error',
       error: 'Bad Request',
-      message: 'Invalid invitation event type',
+      message: "Événement d'invitation invalide",
       code: 400,
     });
   }
@@ -303,7 +306,7 @@ export class InvitationEventService {
     client.emit('invitation', {
       eventType: 'error',
       error: 'Bad Request',
-      message: 'user not found',
+      message: 'Utilisateur introuvable',
       code: 400,
     });
   }
@@ -312,7 +315,7 @@ export class InvitationEventService {
     client.emit('invitation', {
       eventType: 'error',
       error: 'conflict',
-      message: 'invitation already sent',
+      message: 'Une invitation a déjà été envoyée',
       invitationId,
     });
   }
@@ -321,7 +324,7 @@ export class InvitationEventService {
     client.emit('invitation', {
       eventType: 'error',
       error: 'conflict',
-      message: 'invitation already received',
+      message: 'Une invitation a déjà été reçue',
       invitationId,
     });
   }

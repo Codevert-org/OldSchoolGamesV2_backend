@@ -159,7 +159,16 @@ export class GameEventService {
           opponent: game.getOpponent(socket['user'].pseudo),
           cells: game.getCells(),
         }
-      : { turn: null, error: 'no game registered' };
+      : undefined;
+    if (!result) {
+      socket.emit('game', {
+        eventType: data.eventType,
+        error: 'Not Found',
+        message: 'Aucune partie enregistrée',
+        code: 404,
+      });
+      return;
+    }
     socket.emit('game', { eventType: data.eventType, result });
   }
 

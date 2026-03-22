@@ -5,7 +5,9 @@ export function castNumParam(
   paramValue: string | number,
 ): number {
   if (isNaN(+paramValue)) {
-    throw new BadRequestException(`Param ${paramName} must be a number`);
+    throw new BadRequestException(
+      `Le paramètre "${paramName}" doit être un nombre`,
+    );
   }
   return +paramValue;
 }
