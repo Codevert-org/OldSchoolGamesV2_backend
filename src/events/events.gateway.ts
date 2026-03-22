@@ -34,7 +34,7 @@ export class EventsGateway {
   }
 
   handleDisconnect(client: Socket) {
-    return this.userEventService.handleDisconnect(client);
+    return this.userEventService.handleDisconnect(client, this.server);
   }
 
   notifyUserRegistered(user: {
