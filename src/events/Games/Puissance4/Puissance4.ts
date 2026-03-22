@@ -4,9 +4,11 @@ import type { IGridGameResult, IGamePlayer } from '../commons/GridGame';
 // Colonne d'une cellule encodée sous forme numérique (ex: 34 → col 3)
 const colOf = (n: number) => Math.floor(n / 10);
 
-// Delta de colonne attendu pour un vecteur donné (horizontal: ±1, vertical: 0)
-const expectedColDelta = (v: number) =>
-  Math.sign(v) * (Math.abs(v) === 10 ? 0 : 1);
+// Delta de colonne attendu pour un vecteur donné (vertical ±1: 0, horizontal ±10: ±1, diagonal ±9/±11: ±1)
+const expectedColDelta = (v: number) => {
+  if (Math.abs(v) === 1) return 0;
+  return Math.sign(v);
+};
 
 export class Puissance4Game extends GridGame {
   constructor(player1: IGamePlayer, player2: IGamePlayer) {
@@ -95,7 +97,8 @@ export class Puissance4Game extends GridGame {
     for (const vector of validVectors) {
       const winningCells = [cellName, `c${cellNumber + vector}`];
       // Ici, pour chaque validVector, on a deux pions alignés.
-      const forward = this.countAligned(cellNumber, vector, 1, player);
+      // forward part depuis le voisin déjà connu (cellNumber + vector), backward depuis cellName.
+      const forward = this.countAligned(cellNumber + vector, vector, 1, player);
       const backward = this.countAligned(cellNumber, vector, -1, player);
       const aligned = 2 + forward.count + backward.count;
 
