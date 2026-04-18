@@ -39,7 +39,7 @@ export default [
 
       parserOptions: {
         project: 'tsconfig.json',
-        tsconfigRootDir: '.',
+        tsconfigRootDir: __dirname,
       },
     },
 
