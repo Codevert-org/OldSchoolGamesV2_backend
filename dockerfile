@@ -16,6 +16,6 @@ RUN npm install
 # Bundle app source
 COPY . .
 
-RUN npm run build
+RUN npx prisma generate && npm run build
 
 CMD [ "sh", "-c", "npx prisma migrate deploy && node dist/main" ]
