@@ -95,7 +95,7 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^generated/prisma$": "<rootDir>/../generated/prisma"
+      "^../generated/prisma$": "<rootDir>/generated/prisma"
     },
     "reporters": [
       "default",

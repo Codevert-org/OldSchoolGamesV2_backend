@@ -37,6 +37,7 @@ lerna-debug.log*
 # misc
 .env
 generated/prisma
+src/generated/prisma
 _envs
 .claude
 todo.txt
