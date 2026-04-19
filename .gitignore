@@ -40,3 +40,11 @@ generated/prisma
 _envs
 .claude
 todo.txt
+
+# Build artefacts
+eslint.xml
+*.tsbuildinfo
+test-results/
+prisma/prisma.config.d.ts
+prisma/prisma.config.js
+prisma/prisma.config.js.map
