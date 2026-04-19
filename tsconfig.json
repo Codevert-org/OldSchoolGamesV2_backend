@@ -19,6 +19,10 @@
     "noFallthroughCasesInSwitch": false,
     "types": ["node", "jest"],
     "moduleResolution": "node",
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "generated/prisma": ["./generated/prisma"],
+      "generated/prisma/*": ["./generated/prisma/*"]
+    }
   }
 }
