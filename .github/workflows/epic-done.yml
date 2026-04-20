@@ -1,0 +1,76 @@
+name: Epic Done propagation
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  propagate:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Propagate Epic to Done if all stories are Done
+        env:
+          GH_TOKEN: ${{ secrets.GH_PROJECT_PAT }}
+          PROJECT_ID: PVT_kwDODUXDMc4A-vse
+          STATUS_FIELD_ID: PVTSSF_lADODUXDMc4A-vsezgyDoKU
+          STATUS_DONE: "98236657"
+          REPO: ${{ github.repository }}
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          # Extract issue number from "Closes #N"
+          ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?i)closes\s+#\K[0-9]+' | head -1)
+          if [ -z "$ISSUE_NUMBER" ]; then
+            echo "No 'Closes #N' found in PR body — skipping"
+            exit 0
+          fi
+          echo "Issue: #$ISSUE_NUMBER"
+
+          # Get issue body
+          ISSUE_BODY=$(gh api repos/$REPO/issues/$ISSUE_NUMBER --jq .body)
+
+          # Extract epic number from "Part of #N"
+          EPIC_NUMBER=$(echo "$ISSUE_BODY" | grep -oP '(?i)part of\s+#\K[0-9]+' | head -1)
+          if [ -z "$EPIC_NUMBER" ]; then
+            echo "No 'Part of #N' found in issue body — skipping"
+            exit 0
+          fi
+          echo "Epic: #$EPIC_NUMBER"
+
+          # Get epic body and parse ## Stories checklist
+          EPIC_BODY=$(gh api repos/$REPO/issues/$EPIC_NUMBER --jq .body)
+          SUB_ISSUES=$(echo "$EPIC_BODY" | grep -oP '(?<=#)[0-9]+')
+          if [ -z "$SUB_ISSUES" ]; then
+            echo "No sub-issues found in Epic body — skipping"
+            exit 0
+          fi
+          echo "Sub-issues: $SUB_ISSUES"
+
+          # Check project status of each sub-issue
+          for SUB in $SUB_ISSUES; do
+            NODE_ID=$(gh api repos/$REPO/issues/$SUB --jq .node_id)
+            STATUS=$(gh api graphql -f query="{ node(id: \"$NODE_ID\") { ... on Issue { projectItems(first: 10) { nodes { fieldValueByName(name: \"Status\") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }" --jq '.data.node.projectItems.nodes[0].fieldValueByName.name // "none"')
+            echo "  #$SUB → $STATUS"
+            if [ "$STATUS" != "Done" ]; then
+              echo "Sub-issue #$SUB is not Done ($STATUS) — Epic stays unchanged"
+              exit 0
+            fi
+          done
+
+          echo "All sub-issues are Done — setting Epic #$EPIC_NUMBER to Done"
+
+          EPIC_NODE_ID=$(gh api repos/$REPO/issues/$EPIC_NUMBER --jq .node_id)
+          EPIC_ITEM_ID=$(gh api graphql -f query="{ node(id: \"$EPIC_NODE_ID\") { ... on Issue { projectItems(first: 10) { nodes { id } } } } }" --jq '.data.node.projectItems.nodes[0].id')
+
+          gh api graphql -f query="mutation {
+            updateProjectV2ItemFieldValue(input: {
+              projectId: \"$PROJECT_ID\"
+              itemId: \"$EPIC_ITEM_ID\"
+              fieldId: \"$STATUS_FIELD_ID\"
+              value: { singleSelectOptionId: \"$STATUS_DONE\" }
+            }) { projectV2Item { id } }
+          }"
+
+          echo "Epic #$EPIC_NUMBER set to Done"
