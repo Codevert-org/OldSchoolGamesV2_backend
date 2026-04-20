@@ -1,8 +1,6 @@
-FROM node:22-slim
+FROM node:22-alpine
 # Create app directory
 WORKDIR /usr/src/app
-
-RUN apt-get update -y && apt-get install -y openssl
 
 RUN mkdir assets
 
