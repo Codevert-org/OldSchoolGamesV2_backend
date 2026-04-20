@@ -37,6 +37,7 @@ pipeline {
                 echo 'performing install...'
                 sh '''
                     npm install
+                    npx prisma generate
                 '''
             }
         }
