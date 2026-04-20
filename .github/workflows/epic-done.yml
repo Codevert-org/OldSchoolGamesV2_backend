@@ -17,8 +17,8 @@ jobs:
           STATUS_FIELD_ID: PVTSSF_lADODUXDMc4A-vsezgyDoKU
           STATUS_DONE: "98236657"
           REPO: ${{ github.repository }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
 
           # Extract issue number from "Closes #N"
           ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?i)closes\s+#\K[0-9]+' | head -1)
