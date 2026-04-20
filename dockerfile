@@ -16,4 +16,4 @@ COPY . .
 
 RUN npx prisma generate && npm run build
 
-CMD [ "sh", "-c", "npx prisma migrate deploy && node dist/main" ]
+CMD [ "sh", "-c", "export $(grep -v '^#' .env | xargs) && npx prisma migrate deploy && node dist/main" ]
