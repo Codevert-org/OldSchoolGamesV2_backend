@@ -16,4 +16,4 @@ COPY . .
 
 RUN npx prisma generate && npm run build
 
-CMD [ "sh", "-c", "set -a && . ./.env && set +a && npx prisma migrate deploy && node dist/main" ]
+CMD [ "sh", "-c", "set -a && . ./.env && set +a && npx prisma migrate deploy --config prisma/prisma.config.ts && node dist/main" ]
