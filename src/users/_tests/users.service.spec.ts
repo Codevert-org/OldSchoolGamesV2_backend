@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
+
+jest.mock('../../prisma/prisma.service', () => ({
+  PrismaService: jest.fn(),
+}));
 import * as bcrypt from 'bcrypt';
 import * as fs from 'node:fs';
 
