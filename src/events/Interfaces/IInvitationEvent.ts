@@ -3,5 +3,5 @@ export interface IInvitationEvent {
   fromId?: number;
   toId?: number;
   invitationId?: number;
-  game: string;
+  game?: string;
 }

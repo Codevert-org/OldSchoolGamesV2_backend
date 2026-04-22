@@ -16,6 +16,7 @@ export class InvitationEventDto {
   @IsNumber()
   invitationId?: number;
 
+  @IsOptional()
   @IsString()
-  game: string;
+  game?: string;
 }
