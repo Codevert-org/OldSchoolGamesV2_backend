@@ -8,5 +8,13 @@ export class GameEventDto {
   roomName: string;
 
   @IsOptional()
+  @IsString()
+  cellName?: string;
+
+  @IsOptional()
+  @IsString()
+  col?: string;
+
+  @IsOptional()
   data?: any;
 }

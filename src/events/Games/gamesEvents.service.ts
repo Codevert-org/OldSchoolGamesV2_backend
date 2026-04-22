@@ -10,6 +10,8 @@ interface IGameEvent {
   roomName: string;
   data?: any;
   eventType: 'play' | 'reload' | 'leave' | 'getGameData';
+  cellName?: string;
+  col?: string;
 }
 
 const GRACE_PERIOD_MS = 10_000;
